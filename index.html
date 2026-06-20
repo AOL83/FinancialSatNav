@@ -334,29 +334,69 @@ const SourceConnectors={
 };
 
 
-const RadarMonitor=[
- ["SCAN","Monitoring central bank roadworks","scan"],
- ["SCAN","Monitoring inflation releases","scan"],
- ["SCAN","Monitoring energy markets","scan"],
- ["SCAN","Monitoring commodity markets","scan"],
- ["SCAN","Monitoring housing pressure","scan"],
- ["SCAN","Monitoring government policy","scan"],
- ["SCAN","Monitoring FX fuel quality","scan"],
- ["SCAN","Monitoring transport and mobility costs","scan"],
- ["SCAN","Monitoring debt and credit conditions","scan"],
- ["SCAN","Monitoring geopolitical collision risks","scan"],
- ["STATUS","No immediate collision escalation detected","quiet"],
- ["STATUS","Vehicle route remains under observation","quiet"]
-];
 
 let radarIndex=0;
 
+function getBestRoute(){
+ const routes=activeEvents.flatMap(e=>e.routes.map(r=>({...r,event:e})));
+ return routes.sort((a,b)=>b.save-a.save)[0] || null;
+}
+
+function currentFuelState(){
+ const v=vehicle();
+ const baseEvap=fuelBase[v.fuel].evap;
+ const eventLoss=activeEvents.reduce((s,e)=>s+(e.fuelLoss||0),0);
+ const annualLoss=eventLoss*12;
+ const baseLost=v.savings*(baseEvap/100);
+ const totalLost=baseLost+annualLoss;
+ const evapPct=v.savings?Math.round((totalLost/v.savings)*100):100;
+ const remaining=Math.max(0,v.savings-totalLost);
+ const netEngine=v.income+v.side-v.fixed;
+ const survival=Math.max(1,Math.min(99,Math.round(85-evapPct+(netEngine/200)-(v.debt/1000))));
+ return {v,baseEvap,eventLoss,annualLoss,baseLost,totalLost,evapPct,remaining,netEngine,survival};
+}
+
+function generateRadarMessage(){
+ const state=currentFuelState();
+
+ if(!activeEvents.length){
+   const watch=[
+    ["SCAN","No active collision markers. Watching central bank roadworks.","scan"],
+    ["BUYING POWER",`Fuel tank ${money(state.v.savings)}. Current base evaporation ${state.baseEvap}%.`,"impact"],
+    ["FUEL",`${state.v.fuel} fuel quality under observation. No new fuel degradation marker yet.`,"fuel"],
+    ["SAVINGS",`Savings fuel remains ${money(state.remaining)} after base evaporation model.`,"impact"],
+    ["ROUTE","No reroute required until a world event creates a marker.","quiet"],
+    ["MOBILITY","Transport, fuel and relocation pressure being scanned.","scan"],
+    ["DEBT","Debt exposure being watched against rate roadworks.","scan"],
+    ["HOUSING","Housing pressure scanner active. No high-impact marker yet.","scan"]
+   ];
+   return watch[radarIndex++ % watch.length];
+ }
+
+ const evt=activeEvents[radarIndex % activeEvents.length];
+ const best=getBestRoute();
+ const crash=evt.crashMatches?.[0];
+ const messages=[
+   ["BUYING POWER",`${evt.title}: ${money(evt.purchasingPowerLoss)} annual purchasing-power impact.`,"impact"],
+   ["FUEL",`${evt.title}: expected fuel drain ${money(evt.fuelLoss)}/month.`,"fuel"],
+   ["SAVINGS",`Current evaporation rate ${state.evapPct}%. Fuel lost ${money(state.totalLost)}.`,"impact"],
+   ["COLLISION",`${evt.kind}: probability ${evt.prob}% · severity ${evt.severity}.`,"alert"],
+   ["ATTRIBUTION",`${evt.chain?.join(" → ") || "Fuel impact chain calculated"}.`,"news"],
+   ["CRASH SITE",crash?`${crash.name}: previous PP loss ${crash.loss}% · recovery ${crash.recovery}.`:"No close crash site match yet.","news"],
+   ["ROUTE",best?`${best.name} saves ${money(best.save)} against ${best.event.title}.`:"Route calculation pending.","route"],
+   ["SURVIVAL",`Route survival now ${state.survival}%. Net engine ${money(state.netEngine)}/month.`,"route"],
+   ["DO NOTHING",evt.doNothing || `${evt.title} keeps draining fuel if ignored.`,"alert"],
+   ["MAP",`${activeEvents.length} route markers active. Next visible hazard: ${evt.title}.`,"route"]
+ ];
+ radarIndex++;
+ return messages[radarIndex % messages.length];
+}
+
 function startRadarScreen(){
  setInterval(()=>{
-   const r=RadarMonitor[radarIndex % RadarMonitor.length];
+   const r=generateRadarMessage();
    addConsole(r[0],r[1],r[2]);
-   radarIndex++;
- },3000);
+ },2500);
 }
 function addConsole(tag,msg,cls="scan"){
  const c=document.getElementById("console");
@@ -384,8 +424,16 @@ async function runScannerCycle(){
      setTimeout(()=>{
        upsertRawEvent({...EventLibrary[step.eventKey],publishedAt:new Date().toISOString()});
        rebuildFromRawEvents();
+       const evt=activeEvents.find(x=>x.title===IntelligencePipeline.classify(EventLibrary[step.eventKey]).title) || activeEvents[activeEvents.length-1];
        scannerLog("MAP","Marker added to route: "+EventLibrary[step.eventKey].title,"route",80);
-       scannerLog("RECALC","Route option generated from "+EventLibrary[step.eventKey].title,"route",160);
+       if(evt){
+         scannerLog("FUEL",evt.title+" calculated against vehicle: "+money(evt.fuelLoss)+"/month","fuel",120);
+         scannerLog("BUYING POWER",evt.title+" annual impact: "+money(evt.purchasingPowerLoss),"impact",180);
+         scannerLog("CRASH SITE",(evt.crashMatches?.[0]?.name||"No prior crash match")+" checked","news",240);
+         scannerLog("RECALC","Best route: "+evt.bestRoute.name+" saves "+money(evt.bestRoute.save),"route",300);
+       }else{
+         scannerLog("RECALC","Route option generated from "+EventLibrary[step.eventKey].title,"route",160);
+       }
      },step.delay+120);
    }
    if(step.action==="low"){
