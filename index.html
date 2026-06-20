@@ -333,6 +333,31 @@ const SourceConnectors={
  }
 };
 
+
+const RadarMonitor=[
+ ["SCAN","Monitoring central bank roadworks","scan"],
+ ["SCAN","Monitoring inflation releases","scan"],
+ ["SCAN","Monitoring energy markets","scan"],
+ ["SCAN","Monitoring commodity markets","scan"],
+ ["SCAN","Monitoring housing pressure","scan"],
+ ["SCAN","Monitoring government policy","scan"],
+ ["SCAN","Monitoring FX fuel quality","scan"],
+ ["SCAN","Monitoring transport and mobility costs","scan"],
+ ["SCAN","Monitoring debt and credit conditions","scan"],
+ ["SCAN","Monitoring geopolitical collision risks","scan"],
+ ["STATUS","No immediate collision escalation detected","quiet"],
+ ["STATUS","Vehicle route remains under observation","quiet"]
+];
+
+let radarIndex=0;
+
+function startRadarScreen(){
+ setInterval(()=>{
+   const r=RadarMonitor[radarIndex % RadarMonitor.length];
+   addConsole(r[0],r[1],r[2]);
+   radarIndex++;
+ },3000);
+}
 function addConsole(tag,msg,cls="scan"){
  const c=document.getElementById("console");
  const line=document.createElement("div");
@@ -512,6 +537,7 @@ function boot(){
 }
 window.addEventListener("resize",renderMap);
 document.addEventListener("keydown",e=>{if(e.key==="Escape")hideDetails()});
+startRadarScreen();
 boot();
 </script>
 </body>
