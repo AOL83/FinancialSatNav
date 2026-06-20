@@ -76,6 +76,19 @@ button.alt{background:#0e1626;color:var(--cyan)}
 .lifeGoalLabel{position:absolute;left:50px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:12px;color:#cfefff;background:rgba(7,16,29,.9);border:1px solid rgba(0,229,255,.25);border-radius:999px;padding:4px 8px}
 .achievementToast{position:fixed;left:50%;top:84px;transform:translateX(-50%);background:#061407;border:1px solid var(--green);box-shadow:0 0 30px rgba(57,255,136,.45);border-radius:16px;padding:14px 18px;z-index:80;display:none;font-weight:bold;color:#dfffe9}
 .confetti{position:fixed;width:8px;height:12px;background:var(--green);z-index:79;pointer-events:none;animation:fall 1.8s linear forwards}
+
+.goalEditor{border:1px solid rgba(255,230,0,.28);border-radius:14px;background:#07101d;padding:10px;margin:10px 0}
+.goalEditor label{display:block;font-size:12px;color:var(--muted);margin-top:6px}
+.goalEditor textarea{width:100%;min-height:78px;padding:9px;margin:5px 0;border-radius:10px;background:#0e1626;border:1px solid #284260;color:white;resize:vertical}
+.goalActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.goalActionRow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.goalActionRow button{width:auto;min-width:76px;padding:7px 9px}
+.goalCheck{display:flex;gap:8px;align-items:flex-start;border-top:1px solid rgba(0,229,255,.12);padding:6px 0;font-size:12px}
+.goalCheck input{width:auto;margin-top:2px}
+.goalCheck.done span{text-decoration:line-through;color:var(--green)}
+.goalMeta{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0}
+.goalDanger{background:#2a1220!important;color:#fff!important;border-color:var(--red)!important}
+
 @keyframes goalPulse{50%{box-shadow:0 0 34px rgba(57,255,136,.75);transform:scale(1.08)}}
 @keyframes fall{to{transform:translateY(120vh) rotate(720deg);opacity:0}}
 
@@ -115,6 +128,19 @@ button.alt{background:#0e1626;color:var(--cyan)}
   .marker.right:before{left:-32px!important}
   #detailsBody{margin:58px auto 18px;padding:16px}
 }
+
+.destinationFocusPanel{border:1px solid rgba(255,230,0,.32);border-radius:14px;background:#07101d;padding:10px;margin:10px 0}
+.destinationSelect{display:grid;grid-template-columns:1fr;gap:6px}
+.routeJourneyPin{position:absolute;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#07101d;border:2px solid var(--green);box-shadow:0 0 18px rgba(57,255,136,.35);cursor:pointer;z-index:8;font-size:19px}
+.routeJourneyPin.milestone{border-color:var(--cyan);box-shadow:0 0 18px rgba(0,229,255,.32)}
+.routeJourneyPin.destinationPin{width:50px;height:50px;font-size:24px;border-color:var(--yellow);box-shadow:0 0 28px rgba(255,230,0,.45)}
+.routeJourneyPin.roadblock{border-color:var(--red);box-shadow:0 0 18px rgba(255,41,95,.42)}
+.routeJourneyPin.routeFix{border-color:var(--green);box-shadow:0 0 18px rgba(57,255,136,.48)}
+.routeJourneyLabel{position:absolute;left:48px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:12px;color:#cfefff;background:rgba(7,16,29,.92);border:1px solid rgba(0,229,255,.25);border-radius:999px;padding:4px 8px}
+.routeJourneyPin.destinationPin .routeJourneyLabel{left:58px;color:var(--yellow);border-color:rgba(255,230,0,.45)}
+.routeJourneyStats{font-size:12px;color:var(--muted);margin-top:6px}
+.destinationImpactList{margin:8px 0 0;padding-left:18px}
+
 </style>
 </head>
 <body>
@@ -170,8 +196,51 @@ button.alt{background:#0e1626;color:var(--cyan)}
 <h2 class="sectionTitle">Route Recalculation</h2>
 <div id="routes"></div>
 
+<h2 class="sectionTitle">Destination Navigator</h2>
+<div class="destinationFocusPanel">
+<label>Active Destination</label>
+<select id="destinationSelector" onchange="setActiveDestination(this.value)"></select>
+<div id="destinationFocusSummary" class="routeJourneyStats"></div>
+</div>
+
 <h2 class="sectionTitle">Mission Control</h2>
 <div class="routeCard best" id="missionControl"></div>
+
+<h2 class="sectionTitle">Life Route Plan Builder</h2>
+<div class="goalEditor" id="goalEditor">
+<input type="hidden" id="goalId">
+<label>Goal name</label><input id="goalName" placeholder="Emergency Fund">
+<label>Goal type</label>
+<select id="goalType">
+<option>Emergency Fund</option>
+<option>Debt Free</option>
+<option>House Deposit</option>
+<option>Home Purchase</option>
+<option>Investment Target</option>
+<option>Financial Independence</option>
+<option>Custom Destination</option>
+</select>
+<div class="grid2">
+<div><label>Target amount</label><input id="goalTarget" type="number" placeholder="5000"></div>
+<div><label>Current amount</label><input id="goalCurrent" type="number" placeholder="1000"></div>
+</div>
+<div class="grid2">
+<div><label>Target year</label><select id="goalYear"><option value="1">1Y</option><option value="2">2Y</option><option value="3">3Y</option><option value="5">5Y</option><option value="10">10Y</option></select></div>
+<div><label>Priority</label><select id="goalPriority"><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select></div>
+</div>
+<div class="grid2">
+<div><label>Target date</label><input id="goalDate" type="date"></div>
+<div><label>Achievement icon</label><input id="goalIcon" placeholder="🛡️"></div>
+</div>
+<label>Checklist items - one per line</label>
+<textarea id="goalChecklist" placeholder="Save first £1,000&#10;Save 1 month expenses&#10;Save 3 months expenses"></textarea>
+<label>Milestones - numbers separated by commas</label>
+<input id="goalMilestones" placeholder="1000,2500,5000">
+<div class="goalActions">
+<button onclick="saveGoalFromEditor()">SAVE GOAL</button>
+<button class="alt" onclick="clearGoalEditor()">CLEAR</button>
+</div>
+</div>
 
 <h2 class="sectionTitle">Life Route Timeline</h2>
 <div id="lifeTimeline"></div>
@@ -187,7 +256,7 @@ button.alt{background:#0e1626;color:var(--cyan)}
 <div class="routeMap" id="routeMap">
 <div class="road"></div>
 <div class="vehicle">🚗</div>
-<div class="destination">🏁<br><b>1Y · 2Y · 3Y · 5Y · 10Y DESTINATIONS</b><br><span class="small">Mission: reach life targets while avoiding collisions</span></div>
+<div class="destination">🏁<br><b>DESTINATION ROUTE</b><br><span class="small">Today → Milestones → Roadblocks → Arrival</span></div>
 </div>
 </main>
 </div>
@@ -485,15 +554,134 @@ function rebuildFromRawEvents(){
 
 
 
-const LifeGoals=[
- {id:"emergency",year:1,name:"Emergency Fund",target:5000,current:1000,icon:"🛡️",achievement:"✓ Emergency Fund Complete",milestones:[1000,2500,5000]},
- {id:"debtfree",year:2,name:"Debt Free",target:2500,current:0,icon:"✅",achievement:"✓ Debt Cleared",milestones:[625,1250,2500],debtGoal:true},
- {id:"deposit",year:3,name:"House Deposit",target:25000,current:3000,icon:"🏠",achievement:"✓ House Deposit Reached",milestones:[5000,10000,25000]},
- {id:"home",year:5,name:"Home Purchase",target:60000,current:5000,icon:"🔑",achievement:"✓ Home Purchased",milestones:[15000,30000,60000]},
- {id:"independence",year:10,name:"Financial Independence",target:250000,current:10000,icon:"🌅",achievement:"✓ Financial Independence Achieved",milestones:[25000,100000,250000]}
+
+const DefaultLifeGoals=[
+ {id:"emergency",year:1,name:"Emergency Fund",type:"Emergency Fund",target:5000,current:1000,icon:"🛡️",priority:"Critical",targetDate:"",checklist:["Save first £1,000","Save 1 month expenses","Save 3 months expenses","Save 6 months expenses"],checked:[false,false,false,false],milestones:[1000,2500,5000]},
+ {id:"debtfree",year:2,name:"Debt Free",type:"Debt Free",target:2500,current:0,icon:"✅",priority:"High",targetDate:"",checklist:["Pay first £500","Pay 25%","Pay 50%","Pay off debt"],checked:[false,false,false,false],milestones:[500,1250,2500],debtGoal:true},
+ {id:"deposit",year:3,name:"House Deposit",type:"House Deposit",target:25000,current:3000,icon:"🏠",priority:"High",targetDate:"",checklist:["Save £5,000","Save £10,000","Save £25,000","Mortgage ready"],checked:[false,false,false,false],milestones:[5000,10000,25000]},
+ {id:"home",year:5,name:"Home Purchase",type:"Home Purchase",target:60000,current:5000,icon:"🔑",priority:"Medium",targetDate:"",checklist:["Deposit ready","Mortgage approved","Solicitor ready","Home purchased"],checked:[false,false,false,false],milestones:[15000,30000,60000]},
+ {id:"independence",year:10,name:"Financial Independence",type:"Financial Independence",target:250000,current:10000,icon:"🌅",priority:"Medium",targetDate:"",checklist:["First £25,000 invested","£100,000 fuel reserve","Income covers fixed costs","Fuel independence reached"],checked:[false,false,false,false],milestones:[25000,100000,250000]}
 ];
+
+let LifeGoals=loadLifeGoals();
 const AchievementState=new Set(JSON.parse(localStorage.getItem("FinancialSatNavAchievements")||"[]"));
 
+function normaliseGoal(g){
+ return {
+   id:g.id||("goal-"+Date.now()+"-"+Math.random().toString(36).slice(2,7)),
+   year:Number(g.year||1),
+   name:g.name||"New Destination",
+   type:g.type||"Custom Destination",
+   target:Number(g.target||0),
+   current:Number(g.current||0),
+   icon:g.icon||"🏁",
+   priority:g.priority||"Medium",
+   targetDate:g.targetDate||"",
+   checklist:Array.isArray(g.checklist)?g.checklist:[],
+   checked:Array.isArray(g.checked)?g.checked:[],
+   milestones:Array.isArray(g.milestones)?g.milestones.map(Number).filter(n=>!Number.isNaN(n)):[],
+   debtGoal:!!g.debtGoal
+ };
+}
+function loadLifeGoals(){
+ try{
+   const saved=JSON.parse(localStorage.getItem("FinancialSatNavLifeGoals")||"null");
+   if(Array.isArray(saved)&&saved.length)return saved.map(normaliseGoal);
+ }catch(e){}
+ return DefaultLifeGoals.map(normaliseGoal);
+}
+function saveLifeGoals(){
+ localStorage.setItem("FinancialSatNavLifeGoals",JSON.stringify(LifeGoals));
+}
+function checklistTemplates(type){
+ const templates={
+   "Emergency Fund":["Save first £1,000","Save 1 month expenses","Save 3 months expenses","Save 6 months expenses"],
+   "House Deposit":["Save £5,000","Save £10,000","Save £25,000","Mortgage ready"],
+   "Debt Free":["Pay first £500","Pay 25%","Pay 50%","Pay off debt"],
+   "Home Purchase":["Deposit ready","Mortgage approved","Solicitor ready","Home purchased"],
+   "Investment Target":["First £1,000 invested","First £5,000 invested","First £10,000 invested","Portfolio automated"],
+   "Financial Independence":["First £25,000 fuel reserve","£100,000 fuel reserve","Income covers fixed costs","Fuel independence reached"]
+ };
+ return templates[type]||["First milestone","Halfway there","Destination reached"];
+}
+function clearGoalEditor(){
+ goalId.value="";
+ goalName.value="";
+ goalType.value="Emergency Fund";
+ goalTarget.value="";
+ goalCurrent.value="";
+ goalYear.value="1";
+ goalPriority.value="Critical";
+ goalDate.value="";
+ goalIcon.value="";
+ goalChecklist.value="";
+ goalMilestones.value="";
+}
+function editGoal(id){
+ const g=LifeGoals.find(x=>x.id===id);
+ if(!g)return;
+ goalId.value=g.id;
+ goalName.value=g.name;
+ goalType.value=g.type||"Custom Destination";
+ goalTarget.value=g.target;
+ goalCurrent.value=g.current;
+ goalYear.value=g.year;
+ goalPriority.value=g.priority||"Medium";
+ goalDate.value=g.targetDate||"";
+ goalIcon.value=g.icon||"🏁";
+ goalChecklist.value=(g.checklist||[]).join("\n");
+ goalMilestones.value=(g.milestones||[]).join(",");
+ goalEditor.scrollIntoView({behavior:"smooth",block:"center"});
+}
+function deleteGoal(id){
+ LifeGoals=LifeGoals.filter(g=>g.id!==id);
+ saveLifeGoals();
+ addConsole("LIFE ROUTE","Goal deleted","quiet");
+ recalculate();
+}
+function saveGoalFromEditor(){
+ const type=goalType.value;
+ const checklist=goalChecklist.value.trim()?goalChecklist.value.split("\n").map(x=>x.trim()).filter(Boolean):checklistTemplates(type);
+ const existing=LifeGoals.find(g=>g.id===goalId.value);
+ const checked=existing&&existing.checklist.join("|")===checklist.join("|")?existing.checked:checklist.map(()=>false);
+ const g=normaliseGoal({
+   id:goalId.value||"",
+   name:goalName.value||type,
+   type,
+   target:+goalTarget.value||0,
+   current:+goalCurrent.value||0,
+   year:+goalYear.value||1,
+   priority:goalPriority.value,
+   targetDate:goalDate.value,
+   icon:goalIcon.value||iconForGoal(type),
+   checklist,
+   checked,
+   milestones:goalMilestones.value.split(",").map(x=>+x.trim()).filter(n=>!Number.isNaN(n)&&n>0),
+   debtGoal:type==="Debt Free"
+ });
+ if(!g.milestones.length)g.milestones=[Math.round(g.target*.25),Math.round(g.target*.5),g.target].filter(Boolean);
+ const idx=LifeGoals.findIndex(x=>x.id===g.id);
+ if(idx>=0)LifeGoals[idx]=g; else LifeGoals.push(g);
+ saveLifeGoals();
+ clearGoalEditor();
+ addConsole("LIFE ROUTE","Goal saved: "+g.name,"route");
+ recalculate();
+}
+function iconForGoal(type){
+ return {"Emergency Fund":"🛡️","Debt Free":"✅","House Deposit":"🏠","Home Purchase":"🔑","Investment Target":"📈","Financial Independence":"🌅"}[type]||"🏁";
+}
+function toggleChecklist(goalId,itemIndex){
+ const g=LifeGoals.find(x=>x.id===goalId);
+ if(!g)return;
+ g.checked[itemIndex]=!g.checked[itemIndex];
+ if(g.checked[itemIndex]){
+   const milestoneValue=g.milestones[itemIndex]||0;
+   if(!g.debtGoal)g.current=Math.max(g.current,milestoneValue);
+   unlockAchievement({id:g.id+"-check-"+itemIndex,achievement:`${g.name}: ${g.checklist[itemIndex]}`});
+ }
+ saveLifeGoals();
+ recalculate();
+}
 function monthlyMissionFuel(route=null){
  const v=vehicle();
  const routeBoost=route ? (route.save/12) : 0;
@@ -505,7 +693,8 @@ function annualCollisionDrag(){
 function goalCurrentFuel(goal){
  const v=vehicle();
  if(goal.debtGoal) return Math.max(0,goal.target-v.debt);
- return goal.current;
+ const checklistBoost=(goal.checked||[]).filter(Boolean).length/Math.max(1,(goal.checklist||[]).length);
+ return Math.max(goal.current,Math.round(goal.target*checklistBoost));
 }
 function routeCandidates(){
  return activeEvents.flatMap(e=>e.routes.map(r=>({...r,event:e}))).sort((a,b)=>b.save-a.save);
@@ -531,30 +720,33 @@ function goalForecast(goal,route=null){
  const routeEta=Math.ceil(missing/routeMonthlyNet);
  const collisionDelay=Math.max(0,collisionEta-cleanEta);
  const timeSaved=Math.max(0,collisionEta-routeEta);
- const targetMonths=goal.year*12;
+ const targetMonths=goal.targetDate?Math.max(1,Math.ceil((new Date(goal.targetDate)-new Date())/(1000*60*60*24*30))):goal.year*12;
+ const progress=Math.max(0,Math.min(100,Math.round((current/Math.max(1,required))*100)));
+ const checklistProgress=Math.round(((goal.checked||[]).filter(Boolean).length/Math.max(1,(goal.checklist||[]).length))*100);
  const pressure=Math.min(80,Math.round((collisionDelay/Math.max(1,targetMonths))*100));
- const progress=Math.max(0,Math.min(100,Math.round((current/required)*100)));
- const success=Math.max(1,Math.min(99,Math.round(100-(Math.max(0,collisionEta-targetMonths)*3)-pressure+(route?route.survivalBoost:0)+(progress*0.2))));
- const routeSuccess=route?Math.max(success,Math.min(99,success+route.survivalBoost+Math.round(timeSaved/2))):success;
+ const priorityBoost={Critical:8,High:5,Medium:2,Low:0}[goal.priority]||0;
+ const baseSuccess=100-(Math.max(0,collisionEta-targetMonths)*4)-pressure+(progress*.25)+(checklistProgress*.15)+priorityBoost;
+ const routeSuccess=baseSuccess+(route?route.survivalBoost+Math.round(timeSaved/2):0);
+ const success=Math.max(1,Math.min(99,Math.round(routeSuccess)));
  return {
-   ...goal,current,required,missing,progress,
+   ...goal,current,required,missing,progress,checklistProgress,
    cleanEta,collisionEta,routeEta,collisionDelay,timeSaved,
-   success:route?routeSuccess:success,
-   failure:100-(route?routeSuccess:success),
+   success,failure:100-success,
    arrivalDate:monthsToDate(collisionEta),
    routeArrivalDate:monthsToDate(routeEta),
-   route
+   targetMonths,route
  };
 }
 function allGoalForecasts(route=null){ return LifeGoals.map(g=>goalForecast(g,route)); }
 function primaryMission(){
  const best=bestMissionRoute();
  const forecasts=allGoalForecasts(best);
- return forecasts.find(g=>g.id==="deposit") || forecasts[0];
+ return forecasts.find(g=>g.priority==="Critical") || forecasts[0];
 }
 function renderMissionControl(){
  const best=bestMissionRoute();
  const p=primaryMission();
+ if(!p){missionControl.innerHTML="<b>No destination set</b>";return;}
  missionControl.innerHTML=`
  <b>Destination: ${p.name}</b>
  <div class="missionGrid">
@@ -570,32 +762,48 @@ function renderMissionControl(){
 }
 function renderLifeTimeline(){
  const best=bestMissionRoute();
- const forecasts=allGoalForecasts(best);
+ const forecasts=allGoalForecasts(best).sort((a,b)=>a.year-b.year || ({Critical:0,High:1,Medium:2,Low:3}[a.priority]-{Critical:0,High:1,Medium:2,Low:3}[b.priority]));
  lifeTimeline.innerHTML=forecasts.map(g=>`
    <div class="lifeGoalCard ${g.success>=70?'best':g.success<45?'risk':''}">
      <b>${g.icon} ${g.year}Y: ${g.name}</b>
+     <div class="goalMeta">
+       <span class="badge">${g.priority}</span>
+       <span class="badge">${g.type}</span>
+       <span class="badge">Success ${g.success}%</span>
+       <span class="badge">Failure ${g.failure}%</span>
+       <span class="badge">ETA ${g.collisionEta}m</span>
+       <span class="badge">Best ETA ${g.routeEta}m</span>
+       <span class="badge">Delay ${g.collisionDelay}m</span>
+       <span class="badge">Saved ${g.timeSaved}m</span>
+     </div>
      <div class="goalBar"><div class="goalFill" style="width:${g.progress}%"></div></div>
-     <span class="badge">Progress ${g.progress}%</span>
-     <span class="badge">Success ${g.success}%</span>
-     <span class="badge">Failure ${g.failure}%</span>
-     <span class="badge">ETA ${g.collisionEta}m</span>
-     <span class="badge">Best ETA ${g.routeEta}m</span>
-     <span class="badge">Delay ${g.collisionDelay}m</span>
-     <span class="badge">Saved ${g.timeSaved}m</span>
-     <div class="small">Required ${money(g.required)} · Missing ${money(g.missing)} · Achievement: ${g.achievement}</div>
+     <div class="small">Required ${money(g.required)} · Current ${money(g.current)} · Missing ${money(g.missing)} · Checklist ${g.checklistProgress}%</div>
+     <div>${(g.checklist||[]).map((item,i)=>`
+       <label class="goalCheck ${g.checked[i]?'done':''}">
+         <input type="checkbox" ${g.checked[i]?'checked':''} onchange="toggleChecklist('${g.id}',${i})">
+         <span>${item}</span>
+       </label>`).join("")}</div>
+     <div class="goalActionRow">
+       <button class="alt" onclick="editGoal('${g.id}')">EDIT</button>
+       <button class="goalDanger" onclick="deleteGoal('${g.id}')">DELETE</button>
+     </div>
    </div>`).join("");
 }
 function renderAchievementPrediction(){
  const best=bestMissionRoute();
- const forecasts=allGoalForecasts(best).sort((a,b)=>a.routeEta-b.routeEta);
- const next=forecasts.find(g=>g.progress<100) || forecasts[0];
+ const forecasts=allGoalForecasts(best).filter(g=>g.progress<100).sort((a,b)=>a.routeEta-b.routeEta);
+ const next=forecasts[0] || allGoalForecasts(best)[0];
+ if(!next){achievementPrediction.innerHTML="<b>No achievements set</b>";return;}
+ const nextItemIndex=(next.checked||[]).findIndex(x=>!x);
+ const nextItem=nextItemIndex>=0?next.checklist[nextItemIndex]:`${next.name} complete`;
  achievementPrediction.innerHTML=`
    <b>Next Achievement</b><br>
-   ${next.icon} ${next.achievement}<br>
+   ${next.icon} ${nextItem}<br>
    <span class="badge">Estimated unlock ${next.routeArrivalDate}</span>
    <span class="badge">Success ${next.success}%</span>
+   <span class="badge">Fuel missing ${money(next.missing)}</span>
    <p class="small">${best?`${best.name} speeds it up by ${next.timeSaved} months.`:"Run scan to generate route acceleration."}</p>`;
- if(next.progress>=100 && !AchievementState.has(next.id)) unlockAchievement(next);
+ if(next.progress>=100 && !AchievementState.has(next.id)) unlockAchievement({id:next.id,achievement:`${next.name} Complete`});
 }
 function renderLifeGoalPins(){
  const map=document.getElementById("routeMap");
@@ -617,6 +825,7 @@ function showGoalDetails(g){
  details.style.display="block";document.body.style.overflow="hidden";
  detailsBody.innerHTML=`
  <h2>${g.icon} ${g.name}</h2>
+ <p><b>Goal type:</b> ${g.type}</p>
  <p><b>Required fuel:</b> ${money(g.required)}</p>
  <p><b>Current fuel:</b> ${money(g.current)}</p>
  <p><b>Fuel missing:</b> ${money(g.missing)}</p>
@@ -625,14 +834,18 @@ function showGoalDetails(g){
  <p><b>Collision delay:</b> ${g.collisionDelay} months</p>
  <p><b>Time saved by route:</b> ${g.timeSaved} months</p>
  <p><b>Success / Failure:</b> ${g.success}% / ${g.failure}%</p>
+ <h3>Checklist</h3>
+ <ul>${(g.checklist||[]).map((item,i)=>`<li>${g.checked[i]?"✓":"○"} ${item}</li>`).join("")}</ul>
  <h3>Collision delay per goal</h3>
  <ul>${activeEvents.map(e=>`<li>${e.title}: delays ${g.name} by about ${Math.ceil((e.purchasingPowerLoss||0)/Math.max(1,monthlyMissionFuel()))} months.</li>`).join("")||"<li>No active collision delay.</li>"}</ul>
  <h3>Milestones</h3>
- <ul>${g.milestones.map(m=>`<li>${g.current>=m?"✓":"○"} ${money(m)}</li>`).join("")}</ul>
+ <ul>${(g.milestones||[]).map(m=>`<li>${g.current>=m?"✓":"○"} ${money(m)}</li>`).join("")}</ul>
  ${g.route?`<h3>Best Route</h3><p>${g.route.name} — ${g.route.type}. Saves ${money(g.route.save)} and recovers ${g.timeSaved} months.</p>`:""}`;
 }
 function unlockAchievement(goal){
- AchievementState.add(goal.id);
+ const id=goal.id||goal.achievement||goal.name;
+ if(AchievementState.has(id))return;
+ AchievementState.add(id);
  localStorage.setItem("FinancialSatNavAchievements",JSON.stringify([...AchievementState]));
  achievementToast.innerHTML=`✓ Achievement unlocked: ${goal.achievement||goal.name}`;
  achievementToast.style.display="block";
@@ -658,6 +871,114 @@ function renderMissionSystems(){
  renderAchievementPrediction();
  renderLifeGoalPins();
 }
+
+let ActiveDestinationId=localStorage.getItem("FinancialSatNavActiveDestination")||"";
+
+function activeDestinationGoal(){
+ if(!LifeGoals.length)return null;
+ let g=LifeGoals.find(x=>x.id===ActiveDestinationId);
+ if(!g){g=LifeGoals[0];ActiveDestinationId=g.id;localStorage.setItem("FinancialSatNavActiveDestination",g.id);}
+ return g;
+}
+function setActiveDestination(id){
+ ActiveDestinationId=id;
+ localStorage.setItem("FinancialSatNavActiveDestination",id);
+ recalculate();
+}
+function syncDestinationSelector(){
+ const sel=document.getElementById("destinationSelector");
+ if(!sel)return;
+ const current=ActiveDestinationId || (LifeGoals[0]?.id||"");
+ sel.innerHTML=LifeGoals.map(g=>`<option value="${g.id}" ${g.id===current?"selected":""}>${g.icon||"🏁"} ${g.year}Y · ${g.name}</option>`).join("");
+}
+function focusedForecast(route=null){
+ const goal=activeDestinationGoal();
+ return goal?goalForecast(goal,route):null;
+}
+function collisionDelayForGoal(e,g){
+ return Math.max(1,Math.ceil((e.purchasingPowerLoss||0)/Math.max(1,monthlyMissionFuel())));
+}
+function routeRecoveryForGoal(route,g){
+ return route?Math.max(0,Math.floor((route.save||0)/Math.max(1,monthlyMissionFuel()))):0;
+}
+function nextMilestoneForGoal(g){
+ const current=goalCurrentFuel(g);
+ return (g.milestones||[]).find(m=>m>current) || g.target;
+}
+function renderDestinationFocusSummary(){
+ const box=document.getElementById("destinationFocusSummary");
+ if(!box)return;
+ const best=bestMissionRoute();
+ const f=focusedForecast(best);
+ if(!f){box.innerHTML="No active destination.";return;}
+ const next=nextMilestoneForGoal(f);
+ box.innerHTML=`<b>${f.icon} ${f.name}</b><br>
+ Arrival ${f.routeArrivalDate} · Success ${f.success}% · Delay ${f.collisionDelay}m · Best route saves ${f.timeSaved}m<br>
+ Next milestone: ${money(next)} · Fuel missing ${money(f.missing)}`;
+}
+function renderDestinationRouteMap(){
+ const map=document.getElementById("routeMap");
+ if(!map)return;
+ [...map.querySelectorAll(".routeJourneyPin")].forEach(x=>x.remove());
+ const goal=activeDestinationGoal();
+ if(!goal)return;
+ const best=bestMissionRoute();
+ const f=goalForecast(goal,best);
+ const current=goalCurrentFuel(goal);
+ const milestones=(goal.milestones||[]).filter(m=>m>0).sort((a,b)=>a-b);
+ const visibleMilestones=milestones.length?milestones:[Math.round(goal.target*.25),Math.round(goal.target*.5),goal.target];
+
+ const today=document.createElement("div");
+ today.className="routeJourneyPin routeFix";
+ today.style.top="8%";
+ today.style.left="calc(50% - 19px)";
+ today.innerHTML=`🚗<span class="routeJourneyLabel">Today · ${money(current)}</span>`;
+ today.onclick=()=>showGoalDetails(f);
+ map.appendChild(today);
+
+ visibleMilestones.forEach((m,i)=>{
+   const pct=18+((i+1)/(visibleMilestones.length+1))*52;
+   const pin=document.createElement("div");
+   pin.className=`routeJourneyPin milestone ${current>=m?"done":""}`;
+   pin.style.top=pct+"%";
+   pin.style.left="calc(50% - 19px)";
+   pin.innerHTML=`${current>=m?"✓":"○"}<span class="routeJourneyLabel">${money(m)} milestone</span>`;
+   pin.onclick=()=>showGoalDetails(f);
+   map.appendChild(pin);
+ });
+
+ activeEvents.forEach((e,i)=>{
+   const pct=20+((Math.min(365,Math.max(0,e.day))/365)*54);
+   const side=i%2?-62:24;
+   const block=document.createElement("div");
+   block.className="routeJourneyPin roadblock";
+   block.style.top=Math.min(78,Math.max(14,pct))+"%";
+   block.style.left=`calc(50% + ${side}px)`;
+   const delay=collisionDelayForGoal(e,f);
+   block.innerHTML=`${e.icon}<span class="routeJourneyLabel">${e.title} · +${delay}m</span>`;
+   block.onclick=()=>showDetails(e);
+   map.appendChild(block);
+ });
+
+ if(best){
+   const fix=document.createElement("div");
+   fix.className="routeJourneyPin routeFix";
+   fix.style.top="82%";
+   fix.style.left="calc(50% + 34px)";
+   fix.innerHTML=`🔁<span class="routeJourneyLabel">${best.name} · saves ${f.timeSaved}m</span>`;
+   fix.onclick=()=>showRecalc(best);
+   map.appendChild(fix);
+ }
+
+ const dest=document.createElement("div");
+ dest.className=`routeJourneyPin destinationPin ${f.success<45?"risk":f.success<70?"warn":"done"}`;
+ dest.style.top="90%";
+ dest.style.left="calc(50% - 25px)";
+ dest.innerHTML=`${goal.icon||"🏁"}<span class="routeJourneyLabel">${goal.name} · ${f.success}% · ETA ${f.routeEta}m</span>`;
+ dest.onclick=()=>showGoalDetails(f);
+ map.appendChild(dest);
+}
+
 function calculateFuelBreakdown(v){
  const baseEvap=fuelBase[v.fuel].evap;
  const baseLost=v.savings*(baseEvap/100);
@@ -839,6 +1160,72 @@ function boot(){
 }
 window.addEventListener("resize",renderMap);
 document.addEventListener("keydown",e=>{if(e.key==="Escape")hideDetails()});
+
+
+(function(){
+ const oldRenderMissionSystems=window.renderMissionSystems||renderMissionSystems;
+ window.renderMissionSystems=function(){
+   syncDestinationSelector();
+   renderDestinationFocusSummary();
+   renderMissionControl();
+   renderLifeTimeline();
+   renderAchievementPrediction();
+   renderLifeGoalPins();
+   renderDestinationRouteMap();
+ };
+ const oldRenderMissionControl=window.renderMissionControl||renderMissionControl;
+ window.renderMissionControl=function(){
+   const best=bestMissionRoute();
+   const p=focusedForecast(best)||primaryMission();
+   if(!p){missionControl.innerHTML="<b>No destination set</b>";return;}
+   missionControl.innerHTML=`
+   <b>Mission: ${p.icon||"🏁"} ${p.name}</b>
+   <div class="missionGrid">
+     <div class="missionBox"><b>${p.success}%</b><br><span class="small">Arrival Probability</span></div>
+     <div class="missionBox"><b>${p.failure}%</b><br><span class="small">Failure Probability</span></div>
+     <div class="missionBox"><b>${p.routeEta}m</b><br><span class="small">Best Route ETA</span></div>
+     <div class="missionBox"><b>${p.timeSaved}m</b><br><span class="small">Time Saved</span></div>
+     <div class="missionBox"><b>${money(p.required)}</b><br><span class="small">Fuel Required</span></div>
+     <div class="missionBox"><b>${money(p.missing)}</b><br><span class="small">Fuel Missing</span></div>
+   </div>
+   <p class="small">Without collisions ${p.cleanEta}m · With collisions ${p.collisionEta}m · Delay ${p.collisionDelay}m · Arrival ${p.routeArrivalDate}</p>
+   <p class="small">Best route: ${best?`${best.name} — ${best.type} · saves ${money(best.save)} and recovers ${p.timeSaved}m`:"No route yet"}</p>`;
+ };
+ const oldRenderLifeTimeline=window.renderLifeTimeline||renderLifeTimeline;
+ window.renderLifeTimeline=function(){
+   const best=bestMissionRoute();
+   const active=activeDestinationGoal();
+   const forecasts=allGoalForecasts(best).sort((a,b)=>(a.id===active?.id?-1:b.id===active?.id?1:a.year-b.year));
+   lifeTimeline.innerHTML=forecasts.map(g=>`
+     <div class="lifeGoalCard ${g.id===active?.id?'best':g.success<45?'risk':''}">
+       <b>${g.icon} ${g.id===active?.id?'ACTIVE DESTINATION · ':''}${g.year}Y: ${g.name}</b>
+       <div class="goalMeta">
+         <span class="badge">${g.priority}</span>
+         <span class="badge">Success ${g.success}%</span>
+         <span class="badge">Failure ${g.failure}%</span>
+         <span class="badge">ETA ${g.collisionEta}m</span>
+         <span class="badge">Best ETA ${g.routeEta}m</span>
+         <span class="badge">Delay ${g.collisionDelay}m</span>
+         <span class="badge">Saved ${g.timeSaved}m</span>
+       </div>
+       <div class="goalBar"><div class="goalFill" style="width:${g.progress}%"></div></div>
+       <div class="small">Route: Today → Milestones → Roadblocks → ${g.name}</div>
+       <div class="small">Required ${money(g.required)} · Current ${money(g.current)} · Missing ${money(g.missing)} · Checklist ${g.checklistProgress}%</div>
+       <div>${(g.checklist||[]).map((item,i)=>`
+         <label class="goalCheck ${g.checked[i]?'done':''}">
+           <input type="checkbox" ${g.checked[i]?'checked':''} onchange="toggleChecklist('${g.id}',${i})">
+           <span>${item}</span>
+         </label>`).join("")}</div>
+       <div class="goalActionRow">
+         <button class="alt" onclick="setActiveDestination('${g.id}')">NAVIGATE</button>
+         <button class="alt" onclick="editGoal('${g.id}')">EDIT</button>
+         <button class="goalDanger" onclick="deleteGoal('${g.id}')">DELETE</button>
+       </div>
+     </div>`).join("");
+ };
+})();
+
+
 startRadarScreen();
 boot();
 </script>
