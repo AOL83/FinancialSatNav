@@ -251,6 +251,11 @@ pre{color:black;max-height:none}.metrics{display:grid}
 <h2>Report</h2>
 <div class="row controls"><button onclick="App.buildReport()">BUILD REPORT</button><button class="secondary" onclick="App.exportReportHTML()">CUSTOM REPORT EXPORT</button></div>
 <pre id="report"></pre>
+
+<section class="panel" id="assetRadarPanel">
+<h2>Asset Radar</h2>
+<button onclick="App.loadAssetRadar()">LOAD LIVE CRYPTO RADAR</button>
+<div id="assetRadar" style="margin-top:10px"></div>
 </section>
 
 <section class="panel">
@@ -557,6 +562,64 @@ seedDemo(){localStorage.removeItem("financialSatnavNeoWorking");location.reload(
 reset(){if(confirm("Reset Financial SatNav data?")){localStorage.removeItem("financialSatnavNeoWorking");location.reload()}},
 init(){this.load();this.syncInputs();this.renderLists();this.forecast()}
 };
+
+App.state.assetRadar=[];
+
+App.loadAssetRadar = async function(){
+ const ids=[
+  "bitcoin","ethereum","ripple",
+  "hedera-hashgraph","chainlink",
+  "stellar","polkadot"
+ ];
+ try{
+   const url=`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids.join(",")}&sparkline=false`;
+   const res=await fetch(url);
+   const data=await res.json();
+
+   this.state.assetRadar=data.map(a=>{
+      const range=(a.ath-a.atl)||1;
+      const pos=((a.current_price-a.atl)/range)*100;
+      return {
+        name:(a.symbol||"").toUpperCase(),
+        current:a.current_price,
+        ath:a.ath,
+        atl:a.atl,
+        position:Math.max(0,Math.min(100,pos))
+      };
+   });
+
+   this.renderAssetRadar();
+ }catch(err){
+   alert("Asset Radar fetch failed");
+   console.error(err);
+ }
+};
+
+App.renderAssetRadar=function(){
+ const el=document.getElementById("assetRadar");
+ if(!el) return;
+
+ el.innerHTML=this.state.assetRadar.map(a=>{
+   let cls="MID";
+   if(a.position<=20) cls="ACCUMULATION";
+   else if(a.position<=40) cls="VALUE";
+   else if(a.position<=80) cls="EXPENSIVE";
+   else cls="DISTRIBUTION";
+
+   return `
+   <div class="item">
+      <b>${a.name}</b> - ${cls}<br>
+      Current: $${Number(a.current).toLocaleString()}<br>
+      ATH: $${Number(a.ath).toLocaleString()}<br>
+      ATL: $${Number(a.atl).toLocaleString()}<br>
+      Position: ${a.position.toFixed(1)}%
+      <div style="height:10px;background:#111;border-radius:20px;margin-top:6px">
+        <div style="height:10px;width:${a.position}%;background:#39ff88;border-radius:20px"></div>
+      </div>
+   </div>`;
+ }).join("");
+};
+
 App.init();
 </script>
 </body>
