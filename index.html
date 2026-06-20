@@ -215,6 +215,60 @@ button.alt{background:#0e1626;color:var(--cyan)}
   100%{transform:scale(1)}
 }
 
+
+.mapDebug{
+  position:absolute;
+  left:10px;
+  bottom:10px;
+  z-index:30;
+  background:rgba(2,5,10,.82);
+  border:1px solid rgba(0,229,255,.28);
+  color:#bfefff;
+  border-radius:10px;
+  padding:7px 9px;
+  font:12px/1.35 monospace;
+  pointer-events:none;
+}
+.worldEventPin{
+  position:absolute;
+  width:clamp(38px,4.5vw,50px)!important;
+  height:clamp(38px,4.5vw,50px)!important;
+  border-radius:50%!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#170910;
+  border:2px solid var(--red);
+  box-shadow:0 0 22px rgba(255,41,95,.52);
+  z-index:11;
+  cursor:pointer;
+  font-size:clamp(15px,1.8vw,22px)!important;
+}
+.worldEventPin.government{border-color:var(--yellow);box-shadow:0 0 22px rgba(255,230,0,.45)}
+.worldEventPin.market{border-color:var(--red)}
+.worldEventPin.black{border-color:var(--purple);box-shadow:0 0 22px rgba(176,38,255,.45)}
+.worldEventPin.fuel{border-color:var(--cyan);box-shadow:0 0 22px rgba(0,229,255,.45)}
+.worldEventPin::after{
+  content:attr(data-title);
+  position:absolute;
+  left:54px;
+  top:50%;
+  transform:translateY(-50%);
+  display:none;
+  white-space:nowrap;
+  max-width:260px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  background:rgba(7,16,29,.94);
+  border:1px solid rgba(255,255,255,.22);
+  color:#eaf7ff;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:12px;
+}
+.worldEventPin:hover::after{display:block}
+
 </style>
 </head>
 <body>
@@ -338,6 +392,7 @@ button.alt{background:#0e1626;color:var(--cyan)}
 <div class="road"></div>
 <div class="vehicle">🚗</div>
 <div class="destination">🏁<br><b>DESTINATION ROUTE</b><br><span class="small">Today → Milestones → Roadblocks → Arrival</span></div>
+<div class="mapDebug" id="mapDebug">events: 0 · pins: 0</div>
 </div>
 </main>
 </div>
@@ -596,6 +651,8 @@ async function runScannerCycle(){
        upsertRawEvent({...EventLibrary[step.eventKey],publishedAt:new Date().toISOString()});
        rebuildFromRawEvents();
        const evt=activeEvents.find(x=>x.title===IntelligencePipeline.classify(EventLibrary[step.eventKey]).title) || activeEvents[activeEvents.length-1];
+       renderDestinationRouteMap?.();
+       fsnUpdateMapDebug?.();
        scannerLog("MAP","Marker added to route: "+EventLibrary[step.eventKey].title,"route",80);
        if(evt){
          const state=currentFuelState();
@@ -630,6 +687,8 @@ function rebuildFromRawEvents(){
    .forEach(e=>dedup.set(e.category,e));
  activeEvents=[...dedup.values()].sort((a,b)=>a.day-b.day);
  recalculate();
+ renderDestinationRouteMap?.();
+ fsnUpdateMapDebug?.();
 }
 
 
@@ -743,9 +802,14 @@ function saveGoalFromEditor(){
  if(!g.milestones.length)g.milestones=[Math.round(g.target*.25),Math.round(g.target*.5),g.target].filter(Boolean);
  const idx=LifeGoals.findIndex(x=>x.id===g.id);
  if(idx>=0)LifeGoals[idx]=g; else LifeGoals.push(g);
+ ActiveDestinationId=g.id;
+ localStorage.setItem("FinancialSatNavActiveDestination",g.id);
  saveLifeGoals();
+ ActiveDestinationId=g.id;
+ localStorage.setItem('FinancialSatNavActiveDestination',g.id);
  clearGoalEditor();
  addConsole("LIFE ROUTE","Goal saved: "+g.name,"route");
+ syncDestinationSelector();
  recalculate();
 }
 
@@ -973,8 +1037,11 @@ function renderMissionSystems(){
 
 function clearWorldEvents(){
  activeEvents=[];
+ lastRawEvents=[];
  localStorage.removeItem("FinancialSatNavEvents");
+ addConsole("RESET","World events cleared. Destination plan preserved.","quiet");
  recalculate();
+ renderDestinationRouteMap?.();
 }
 function resetLifeRoute(){
  if(!confirm("Delete life route plan?")) return;
@@ -988,7 +1055,17 @@ function resetLifeRoute(){
 function buildRouteNodes(){
  const nodes=[];
  const goal=activeDestinationGoal();
- if(!goal) return [{kind:"vehicle",icon:"🚗"},{kind:"empty",icon:"🏁"}];
+ if(!goal){
+   nodes.push({kind:"vehicle",icon:"🚗"});
+   activeEvents.slice(0,6).forEach((e,i)=>nodes.push({
+      kind:"roadblock",
+      icon:e.icon||"⚠",
+      event:e,
+      lane:i%2?"left":"right"
+   }));
+   nodes.push({kind:"empty",icon:"🎯"});
+   return nodes;
+ }
  const best=bestMissionRoute();
  if(!goal)return;
  const f=goalForecast(goal,best);
@@ -1603,6 +1680,142 @@ window.resetLifeRoute=function(){
  clearGoalEditor?.();
  recalculate();
 };
+
+
+function fsnLayoutConfig(){
+ const mobile=window.innerWidth<700;
+ const tablet=window.innerWidth>=700&&window.innerWidth<1000;
+ return {
+   minGap:mobile?80:tablet?90:100,
+   topSafe:mobile?82:96,
+   bottomSafe:230,
+   nodeSize:mobile?42:48,
+   roadblockOffset:Math.max(mobile?48:70,Math.min(130,Math.round((document.getElementById("routeMap")?.clientWidth||900)*0.12)))
+ };
+}
+function fsnHighImpactEvents(){
+ return [...activeEvents]
+   .filter(e=>(e.severity||0)>=70 || (e.purchasingPowerLoss||0)>1200 || (e.fuelLoss||0)>90)
+   .sort((a,b)=>(b.purchasingPowerLoss||0)-(a.purchasingPowerLoss||0))
+   .slice(0,6);
+}
+function fsnGoalNodes(goal){
+ const nodes=[];
+ const best=typeof bestMissionRoute==="function"?bestMissionRoute():null;
+ const f=goal&&typeof goalForecast==="function"?goalForecast(goal,best):null;
+ nodes.push({kind:"start",icon:"🚗",lane:"center",title:"Vehicle",data:f});
+ if(goal&&f){
+   const current=typeof goalCurrentFuel==="function"?goalCurrentFuel(goal):0;
+   const milestones=(goal.milestones||[]).filter(n=>n>0).sort((a,b)=>a-b);
+   const visible=(milestones.length?milestones:[Math.round(goal.target*.25),Math.round(goal.target*.5),goal.target]).slice(0,3);
+   visible.forEach(m=>nodes.push({kind:"milestone",icon:current>=m?"✓":"○",lane:"center",title:`Milestone ${money(m)}`,data:f}));
+ }
+ fsnHighImpactEvents().forEach((e,i)=>nodes.push({
+   kind:"roadblock",
+   icon:e.icon||"⚠",
+   lane:i%2?"left":"right",
+   title:e.title,
+   event:e,
+   data:f,
+   type:e.type
+ }));
+ if(goal&&best&&f)nodes.push({kind:"fix",icon:"🔁",lane:"right",title:`${best.name} ${best.type}`,route:best,data:f});
+ if(goal&&f)nodes.push({kind:"destination",icon:goal.icon||"🏁",lane:"center",title:goal.name,data:f});
+ else nodes.push({kind:"empty",icon:"🎯",lane:"center",title:"Create or select destination"});
+ return nodes;
+}
+function fsnComputePositions(nodes,map){
+ const cfg=fsnLayoutConfig();
+ const visibleHeight=Math.max(560,map.parentElement?.clientHeight||map.clientHeight||620);
+ let needed=cfg.topSafe+cfg.bottomSafe+((nodes.length-1)*cfg.minGap);
+ let routeHeight=Math.max(visibleHeight,needed);
+ map.style.height=routeHeight+"px";
+ map.style.minHeight=routeHeight+"px";
+ const usable=routeHeight-cfg.topSafe-cfg.bottomSafe;
+ const spacing=Math.max(cfg.minGap,usable/Math.max(1,nodes.length-1));
+ const positions=[];
+ nodes.forEach((n,i)=>{
+   let top=cfg.topSafe+(i*spacing);
+   if(i===nodes.length-1)top=routeHeight-90;
+   if(positions.length && top-positions.at(-1).top<cfg.minGap)top=positions.at(-1).top+cfg.minGap;
+   positions.push({...n,top});
+ });
+ const last=positions.at(-1);
+ if(last){
+   for(let i=positions.length-2;i>=0;i--){
+     if(positions[i].top>last.top-200){
+       positions[i].top=last.top-200-((positions.length-2-i)*cfg.minGap);
+     }
+   }
+ }
+ const minTop=Math.min(...positions.map(p=>p.top));
+ if(minTop<cfg.topSafe){
+   const shift=cfg.topSafe-minTop;
+   positions.forEach(p=>p.top+=shift);
+   routeHeight+=shift;
+   map.style.height=routeHeight+"px";
+   map.style.minHeight=routeHeight+"px";
+ }
+ return positions;
+}
+function fsnPlace(el,pos,map){
+ const cfg=fsnLayoutConfig();
+ const center=map.clientWidth/2;
+ const size=cfg.nodeSize;
+ let left=center-(size/2);
+ if(pos.lane==="left")left=center-cfg.roadblockOffset-size;
+ if(pos.lane==="right")left=center+cfg.roadblockOffset;
+ el.style.top=Math.round(pos.top)+"px";
+ el.style.left=Math.round(left)+"px";
+}
+function fsnDrawNode(map,pos){
+ const el=document.createElement("div");
+ const isEvent=pos.kind==="roadblock";
+ el.className=isEvent?`worldEventPin ${pos.type||""}`:"routeJourneyPin";
+ if(pos.kind==="milestone")el.classList.add("milestone");
+ if(pos.kind==="destination")el.classList.add("destinationPin");
+ if(pos.kind==="fix")el.classList.add("routeFix");
+ if(pos.kind==="empty")el.classList.add("destinationPin","emptyState");
+ el.innerHTML=pos.icon;
+ el.title=pos.title||pos.kind;
+ el.setAttribute("data-title",pos.title||pos.kind);
+ fsnPlace(el,pos,map);
+ el.onclick=()=>{
+   if(pos.event)return showDetails(pos.event);
+   if(pos.route)return showRecalc(pos.route);
+   if(pos.data)return showGoalDetails(pos.data);
+   if(pos.kind==="empty"){
+     const editor=document.getElementById("goalEditor");
+     if(editor)editor.scrollIntoView({behavior:"smooth",block:"center"});
+   }
+ };
+ map.appendChild(el);
+}
+function fsnUpdateMapDebug(){
+ const dbg=document.getElementById("mapDebug");
+ if(!dbg)return;
+ const map=document.getElementById("routeMap");
+ const pins=map?map.querySelectorAll(".worldEventPin,.routeJourneyPin").length:0;
+ const mode=(typeof activeDestinationGoal==="function"&&activeDestinationGoal())?"destination":"radar";
+ dbg.textContent=`mode: ${mode} · events: ${activeEvents.length} · pins: ${pins}`;
+}
+window.renderDestinationRouteMap=function(){
+ const map=document.getElementById("routeMap");
+ if(!map)return;
+ [...map.querySelectorAll(".routeJourneyPin,.worldEventPin,.marker")].forEach(x=>x.remove());
+ const goal=typeof activeDestinationGoal==="function"?activeDestinationGoal():null;
+ const nodes=fsnGoalNodes(goal);
+ const positions=fsnComputePositions(nodes,map);
+ positions.forEach(p=>fsnDrawNode(map,p));
+ if(typeof renderProjectedVehicle==="function" && goal){
+   renderProjectedVehicle(nodes,positions,map);
+ }else if(window.projectedVehicleEl){
+   projectedVehicleEl.remove();
+   projectedVehicleEl=null;
+ }
+ fsnUpdateMapDebug();
+};
+window.renderMap=function(){ renderDestinationRouteMap(); };
 
 startRadarScreen();
 boot();
