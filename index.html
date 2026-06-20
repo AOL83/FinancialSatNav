@@ -2,111 +2,155 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Financial SatNav™ Live Collision Discovery</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Financial SatNav™ Route Map v1</title>
 <style>
-:root{--bg:#05060a;--panel:#0d1220;--cyan:#00e5ff;--green:#39ff88;--yellow:#ffe600;--red:#ff295f;--purple:#b026ff;--muted:#95a8c7;--line:rgba(0,229,255,.3)}
-*{box-sizing:border-box}body{margin:0;color:white;font-family:Inter,system-ui,Arial;background:radial-gradient(circle at 20% 0%,rgba(0,229,255,.15),transparent 30%),radial-gradient(circle at 80% 0%,rgba(57,255,136,.12),transparent 25%),#05060a;min-height:100vh}
-header{position:sticky;top:0;z-index:2;padding:16px;border-bottom:1px solid var(--line);background:rgba(5,6,10,.86);backdrop-filter:blur(12px)}
+:root{
+  --bg:#05070d;--road:#121a29;--panel:#0b1220;--line:#253a57;
+  --cyan:#00e5ff;--green:#39ff88;--yellow:#ffe600;--red:#ff295f;--purple:#b026ff;
+  --text:#eaf7ff;--muted:#91a8c4;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 20% 0%,rgba(0,229,255,.16),transparent 30%),radial-gradient(circle at 80% 0%,rgba(57,255,136,.12),transparent 25%),#05070d;color:var(--text);font-family:Arial,system-ui,sans-serif}
+header{position:sticky;top:0;z-index:20;background:rgba(5,7,13,.9);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,229,255,.25);padding:12px}
 h1{margin:0;color:var(--yellow);text-shadow:0 0 12px var(--yellow);font-size:clamp(22px,5vw,38px)}
-.sub{color:var(--muted);font-size:13px;margin-top:6px}
-.grid{display:grid;grid-template-columns:1fr;gap:12px;padding:12px;max-width:1500px;margin:auto}
-.panel{background:rgba(13,18,32,.82);border:1px solid rgba(0,229,255,.25);border-radius:18px;padding:14px;box-shadow:0 0 28px rgba(0,229,255,.08)}
-.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.metric{padding:12px;border-radius:14px;background:#0f1628;border:1px solid rgba(255,230,0,.2);min-height:90px}.metric span{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.metric b{display:block;font-size:clamp(22px,5vw,32px);color:var(--cyan);margin-top:5px}
-button,input{width:100%;padding:10px;border-radius:12px;background:#0e1626;color:white;border:1px solid rgba(0,229,255,.3);outline:none;margin:4px 0}button{background:linear-gradient(90deg,var(--cyan),var(--green));color:#031018;font-weight:900;cursor:pointer}.secondary{background:#0e1626;color:var(--cyan)}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.badge{display:inline-block;border:1px solid rgba(255,230,0,.35);border-radius:999px;padding:3px 8px;color:var(--yellow);font-size:11px;margin:2px}
-.card{border:1px solid rgba(0,229,255,.25);border-radius:14px;background:#08101d;padding:12px;margin:10px 0}.card.high{border-color:var(--red);box-shadow:0 0 14px rgba(255,41,95,.22)}.card.medium{border-color:var(--yellow)}.card.low{border-color:var(--green)}
-pre{white-space:pre-wrap;color:#dbeafe;line-height:1.45;max-height:420px;overflow:auto}
-.timeline{height:280px;border-radius:16px;position:relative;overflow:auto;background:#08101d;border:1px solid rgba(0,229,255,.22)}
-.line{position:absolute;left:30px;top:140px;width:7600px;height:4px;background:linear-gradient(90deg,var(--cyan),var(--green),var(--yellow),var(--red));box-shadow:0 0 20px var(--cyan)}
-.event{position:absolute;top:140px;transform:translateY(-50%);padding:8px 12px;border-radius:999px;background:#111c33;border:1px solid var(--yellow);box-shadow:0 0 15px var(--yellow);white-space:nowrap;font-size:12px}
-canvas{width:100%;height:275px;background:#08101d;border:1px solid rgba(0,229,255,.22);border-radius:16px}
-@media(min-width:900px){.grid{grid-template-columns:390px 1fr}.metrics{grid-template-columns:repeat(4,1fr)}}@media(max-width:520px){.row{grid-template-columns:1fr}}
+.sub{color:var(--muted);font-size:13px;margin-top:5px}
+.app{display:grid;grid-template-columns:330px 1fr;gap:10px;padding:10px;height:calc(100vh - 76px)}
+.panel{background:rgba(11,18,32,.88);border:1px solid rgba(0,229,255,.25);border-radius:16px;padding:12px;overflow:auto}
+.mapWrap{position:relative;background:linear-gradient(180deg,#07101c,#08111f);border:1px solid rgba(0,229,255,.25);border-radius:18px;overflow:auto;min-height:620px}
+.routeMap{position:relative;width:1400px;height:900px;margin:0 auto}
+.road{position:absolute;left:690px;top:60px;width:20px;height:760px;border-radius:99px;background:linear-gradient(180deg,var(--green),var(--cyan),var(--yellow),var(--red));box-shadow:0 0 32px rgba(0,229,255,.5)}
+.vehicle{position:absolute;left:654px;top:38px;width:90px;height:48px;border-radius:18px;background:#07101d;border:2px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 25px var(--green);z-index:5}
+.destination{position:absolute;left:630px;top:815px;background:#111;border:2px solid var(--yellow);border-radius:16px;padding:12px;text-align:center;box-shadow:0 0 22px var(--yellow)}
+.marker{position:absolute;width:330px;background:rgba(11,18,32,.96);border:1px solid var(--cyan);border-radius:14px;padding:10px;box-shadow:0 0 18px rgba(0,229,255,.22);cursor:pointer}
+.marker:before{content:"";position:absolute;top:26px;width:115px;height:3px;background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+.marker.left:before{right:-115px}.marker.right:before{left:-115px}
+.marker.left{left:250px}.marker.right{left:820px}
+.marker.government{border-color:var(--yellow)}.marker.government:before{background:var(--yellow)}
+.marker.market{border-color:var(--red)}.marker.market:before{background:var(--red)}
+.marker.black{border-color:var(--purple)}.marker.black:before{background:var(--purple)}
+.marker.recalc{border-color:var(--green)}.marker.recalc:before{background:var(--green)}
+.marker h3{margin:0 0 6px;font-size:16px}
+.badge{display:inline-block;border:1px solid rgba(255,230,0,.35);border-radius:999px;padding:3px 7px;font-size:11px;color:var(--yellow);margin:2px}
+.small{font-size:12px;color:var(--muted)}
+.routeCard{border:1px solid rgba(0,229,255,.25);border-radius:12px;padding:9px;margin:8px 0;background:#08101d}
+.routeCard.best{border-color:var(--green);box-shadow:0 0 15px rgba(57,255,136,.18)}
+.fuelbar{height:18px;border-radius:99px;background:#182438;overflow:hidden;border:1px solid #32455f}
+.fill{height:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green))}
+.console{font-family:monospace;font-size:12px;background:#02050a;border:1px solid #1b304a;border-radius:12px;padding:10px;height:150px;overflow:auto}
+button,input,select{width:100%;padding:9px;margin:5px 0;border-radius:10px;background:#0e1626;border:1px solid #284260;color:white}
+button{background:linear-gradient(90deg,var(--cyan),var(--green));color:#021019;font-weight:bold;cursor:pointer}
+button.alt{background:#0e1626;color:var(--cyan)}
+.details{position:fixed;right:14px;bottom:14px;width:min(460px,calc(100vw - 28px));max-height:70vh;overflow:auto;background:#07101d;border:1px solid var(--yellow);border-radius:16px;padding:14px;box-shadow:0 0 30px rgba(255,230,0,.25);z-index:50;display:none}
+.close{float:right;width:auto;background:#2a1220;color:white;border:1px solid var(--red)}
+@media(max-width:900px){
+  .app{grid-template-columns:1fr;height:auto}
+  .mapWrap{height:70vh}
+}
 </style>
 </head>
 <body>
-<header><h1>FINANCIAL SATNAV™ LIVE DISCOVERY</h1><div class="sub">World Event Discovery → Event Classification → Collision Objects → Route Engine</div></header>
-<div class="grid">
-<aside>
-<section class="panel">
-<h2>Vehicle Exposure</h2>
-<label>Starting reserve</label><input id="reserve" type="number" value="1500">
-<label>Monthly income</label><input id="income" type="number" value="2500">
-<div class="row"><div><label>Food</label><input id="Food" value="520" type="number"></div><div><label>Utilities</label><input id="Utilities" value="210" type="number"></div></div>
-<div class="row"><div><label>Housing</label><input id="Housing" value="950" type="number"></div><div><label>Transport</label><input id="Transport" value="220" type="number"></div></div>
-<div class="row"><div><label>Debt</label><input id="Debt" value="120" type="number"></div><div><label>Insurance</label><input id="Insurance" value="95" type="number"></div></div>
-<div class="row"><div><label>Subscriptions</label><input id="Subscriptions" value="45" type="number"></div><div><label>Other</label><input id="Other" value="180" type="number"></div></div>
-<button onclick="App.discover(true)">DISCOVER LIVE COLLISIONS</button>
-<button class="secondary" onclick="App.discover(false)">USE CACHE</button>
-</section>
-<section class="panel"><h2>Sources</h2><div id="sources"></div></section>
+<header>
+<h1>FINANCIAL SATNAV™ ROUTE MAP</h1>
+<div class="sub">DEMO DATA MODE · Map of future economic hazards, roadworks, collisions, crash sites, fuel loss, and reroutes</div>
+</header>
+
+<div class="app">
+<aside class="panel">
+<h2>Vehicle</h2>
+<p><b>Vehicle:</b> Family Household</p>
+<p><b>Engine:</b> £3,000/month</p>
+<p><b>Fuel Tank:</b> £10,000 GBP Fuel</p>
+<p><b>Weight:</b> £1,800/month</p>
+<p><b>Survival Rating:</b> <span id="survival">74%</span></p>
+<div class="fuelbar"><div id="fuelFill" class="fill" style="width:84%"></div></div>
+<p><b>Real Fuel Remaining:</b> <span id="realFuel">£8,400</span></p>
+<p><b>Fuel Evaporation:</b> <span id="evap">16%</span></p>
+
+<h2>Fiat Fuel Grades</h2>
+<div id="fuelGrades"></div>
+
+<h2>Route Recalculation</h2>
+<div id="routes"></div>
+
+<h2>Live Status Console</h2>
+<div class="console" id="console"></div>
 </aside>
-<main>
-<section class="metrics">
-<div class="metric"><span>Detected</span><b id="detected">0</b></div>
-<div class="metric"><span>High Risk</span><b id="highRisk">0</b></div>
-<div class="metric"><span>Survival</span><b id="survival">0%</b></div>
-<div class="metric"><span>Power Loss</span><b id="powerLoss">£0</b></div>
-</section>
-<section class="panel"><h2>Detected Collision Objects</h2><div id="collisions"></div></section>
-<section class="panel"><h2>Timeline Collision Markers</h2><div class="timeline" id="timeline"><div class="line"></div></div></section>
-<section class="panel"><h2>Purchasing Power Impact</h2><canvas id="chart" width="900" height="300"></canvas></section>
-<section class="panel"><h2>Collision Report</h2><pre id="report"></pre></section>
+
+<main class="mapWrap">
+<div class="routeMap" id="routeMap">
+<div class="road"></div>
+<div class="vehicle">🚗</div>
+<div class="destination">🏁<br><b>12 MONTH DESTINATION</b><br><span class="small">Goal: arrive with fuel reserve intact</span></div>
+</div>
 </main>
 </div>
+
+<div class="details" id="details">
+<button class="close" onclick="hideDetails()">X</button>
+<div id="detailsBody"></div>
+</div>
+
 <script>
-const App={
-state:{collisions:[],historical:[],sources:[],timeline:[],routes:[]},
-money(n){return"£"+Number(n||0).toLocaleString("en-GB",{minimumFractionDigits:2,maximumFractionDigits:2})},
-exposure(){return{Food:+Food.value||0,Utilities:+Utilities.value||0,Housing:+Housing.value||0,Transport:+Transport.value||0,Debt:+Debt.value||0,Insurance:+Insurance.value||0,Subscriptions:+Subscriptions.value||0,Other:+Other.value||0}},
-async discover(force){
-detected.textContent="...";collisions.innerHTML="<div class='card'>Fetching live sources through backend acquisition layer...</div>";
-const res=await fetch(`/api/collisions/discover${force?"?force=1":""}`);
-const data=await res.json();
-if(data.error){collisions.innerHTML=`<div class='card high'>${data.error}</div>`;return}
-this.state.collisions=data.collisions||[];this.state.historical=data.historical||[];this.state.sources=data.sources||[];
-this.simulate();this.render();
-},
-impact(c){const ex=this.exposure();return c.affectedCategories.reduce((s,k)=>s+(ex[k]||0)*(c.impactPct/100)*(c.probability/100),0)},
-simulate(){
-const ex=this.exposure(), base=Object.values(ex).reduce((s,v)=>s+v,0), monthlyIncome=+income.value||0;
-let reserveVal=+reserve.value||0;const start=new Date();const timeline=[];
-for(let m=0;m<12;m++){const d=new Date(start);d.setMonth(d.getMonth()+m);reserveVal+=monthlyIncome-base;timeline.push({type:"route",date:d,label:"Monthly route check",amount:monthlyIncome-base,reserve:reserveVal})}
-this.state.collisions.forEach(c=>{const d=new Date(start);d.setDate(d.getDate()+(c.windowDays||90));const loss=this.impact(c);reserveVal-=loss;timeline.push({type:"collision",date:d,label:c.event,amount:-loss,reserve:reserveVal,collision:c})});
-timeline.sort((a,b)=>a.date-b.date);let running=+reserve.value||0;timeline.forEach(t=>{running+=t.amount;t.reserve=running});this.state.timeline=timeline;
-},
-render(){
-const high=this.state.collisions.filter(c=>c.severity>=70||c.probability>=70).length;
-const totalLoss=this.state.collisions.reduce((s,c)=>s+this.impact(c)*12,0);
-const end=this.state.timeline.at(-1)?.reserve||0;const survival=Math.round(Math.max(1,Math.min(99,70+(end/50)-(totalLoss/180))));
-detected.textContent=this.state.collisions.length;highRisk.textContent=high;survival.textContent=survival+"%";powerLoss.textContent=this.money(totalLoss);
-sources.innerHTML=this.state.sources.map(s=>`<div class="card ${s.ok?'low':'high'}"><b>${s.name}</b><br><span class="badge">${s.type}</span><span class="badge">${s.ok?'OK':'FAIL '+s.status}</span><br><small>${s.url}</small></div>`).join("");
-collisions.innerHTML=this.state.collisions.map(c=>`<div class="card ${c.severity>=75?'high':c.severity>=55?'medium':'low'}"><h3>⚠ ${c.event}</h3><span class="badge">${c.source}</span><span class="badge">Severity ${c.severity}</span><span class="badge">Probability ${c.probability}%</span><span class="badge">Validation ${Math.round((c.validationScore||0)*100)}%</span><p>${c.description}</p><b>Impact:</b> ${this.money(this.impact(c))}/month<br><b>Affected:</b> ${c.affectedCategories.join(", ")}<details><summary>Evidence</summary>${(c.evidence||[]).map(e=>`<p><b>${e.sourceName}</b><br>${e.title}<br><small>${e.url}</small><br>${e.snippet}</p>`).join("")}</details></div>`).join("")||"<div class='card high'>No live collisions discovered from available sources.</div>";
-this.renderTimeline();this.drawChart();this.report();
-},
-renderTimeline(){timeline.innerHTML='<div class="line"></div>';this.state.timeline.forEach((e,i)=>{const div=document.createElement("div");div.className="event";div.style.left=(40+i*140)+"px";div.style.top=(i%2?190:100)+"px";div.textContent=`${e.date.toLocaleDateString()} ${e.type==="collision"?"⚠ ":""}${e.label} ${this.money(e.amount)}`;timeline.appendChild(div)})},
-drawChart(){const ctx=chart.getContext("2d"),w=chart.width,h=chart.height;ctx.clearRect(0,0,w,h);ctx.fillStyle="#08101d";ctx.fillRect(0,0,w,h);const cats={};this.state.collisions.forEach(c=>c.affectedCategories.forEach(k=>cats[k]=(cats[k]||0)+this.impact(c)));const rows=Object.entries(cats).sort((a,b)=>b[1]-a[1]);const max=Math.max(1,...rows.map(r=>r[1]));ctx.font="13px Arial";rows.forEach(([name,val],i)=>{const y=30+i*30,bw=(w-170)*(val/max);ctx.fillStyle="#95a8c7";ctx.fillText(name,10,y+16);ctx.fillStyle=i<2?"#ff295f":"#00e5ff";ctx.fillRect(130,y,bw,20);ctx.fillStyle="#f5fbff";ctx.fillText(this.money(val)+"/m",140+bw,y+16)})},
-report(){report.textContent=`FINANCIAL SATNAV LIVE DISCOVERY REPORT
+const money=n=>"£"+Number(n).toLocaleString("en-GB",{maximumFractionDigits:0});
+const events=[
+ {id:"rate",type:"government",icon:"🚧",day:38,title:"UK Rate Decision Detected",kind:"Government Roadworks",fuelLoss:140,prob:78,severity:72,cats:["Housing","Debt"],crashes:["UK mortgage pressure 2022","US regional banking stress 2023"],route:"Route D",avoid:"Increase engine output by £180/month before rate impact window."},
+ {id:"energy",type:"market",icon:"⚠",day:74,title:"Energy Price Shock",kind:"Market Collision",fuelLoss:187,prob:82,severity:86,cats:["Utilities","Food","Transport"],crashes:["UK Energy Crisis 2022","Germany Energy Shock 2022"],route:"Route B",avoid:"Reduce utilities exposure and build £900 fuel reserve."},
+ {id:"food",type:"market",icon:"⚠",day:112,title:"Food Inflation Risk",kind:"Market Roadworks",fuelLoss:96,prob:68,severity:61,cats:["Food"],crashes:["Argentina Inflation Shock 2023","Turkey Currency Crisis 2021"],route:"Route A",avoid:"Increase reserve and lock bulk essentials before price acceleration."},
+ {id:"supply",type:"black",icon:"💥",day:164,title:"Supply Chain Shock",kind:"Black Swan Roadworks",fuelLoss:230,prob:44,severity:88,cats:["Food","Transport","Utilities"],crashes:["COVID Supply Chain Shock 2020","Red Sea shipping disruption"],route:"Route C",avoid:"Delay major purchases and preserve fuel until shipping pressure clears."},
+ {id:"tax",type:"government",icon:"🚧",day:245,title:"Tax Change Roadworks",kind:"Government Roadworks",fuelLoss:87,prob:58,severity:55,cats:["Income","Other"],crashes:["UK fiscal drag period","EU VAT pressure episodes"],route:"Route A",avoid:"Raise emergency fuel reserve and avoid new fixed commitments."},
+ {id:"recalc",type:"recalc",icon:"🔁",day:255,title:"Route Recalculation Available",kind:"Recalculation",fuelLoss:-650,prob:95,severity:20,cats:["Route"],crashes:["Avoided route based on prior crash sites"],route:"Route D",avoid:"Switch to Route D: increase engine output and reduce exposure together."}
+];
+const fuels=[
+ ["GBP Fuel",74,16,74],["USD Fuel",84,10,79],["EUR Fuel",78,12,76],["JPY Fuel",66,14,68],["CHF Fuel",86,6,89]
+];
+const routeOptions=[
+ ["Route A","Build Fuel Reserve",86,900,"Arrive with stronger fuel tank before collision window."],
+ ["Route B","Reduce Exposure",92,1840,"Cut energy/food/housing exposure before hazards hit."],
+ ["Route C","Delay Major Purchases",82,650,"Avoid losing fuel to non-essential commitments."],
+ ["Route D","Increase Engine Output",95,2160,"Add income fuel station before rate and energy collision."]
+];
 
-Generated: ${new Date().toISOString()}
-Live sources checked: ${this.state.sources.length}
-Collision objects discovered: ${this.state.collisions.length}
-
-Detected collisions:
-${this.state.collisions.map(c=>`- ${c.event}
-  Source engine: ${c.source}
-  Severity: ${c.severity}
-  Probability: ${c.probability}%
-  Validation: ${Math.round((c.validationScore||0)*100)}%
-  Affected: ${c.affectedCategories.join(", ")}
-  Monthly impact: ${this.money(this.impact(c))}
-  Evidence count: ${(c.evidence||[]).length}
-`).join("\n")}
-
-Timeline:
-${this.state.timeline.map(t=>`${t.date.toDateString()} | ${t.type} | ${t.label} | ${this.money(t.amount)} | reserve ${this.money(t.reserve)}`).join("\n")}`;}
-};
-App.discover(false);
+function init(){
+ const map=document.getElementById("routeMap");
+ events.forEach((e,i)=>{
+   const y=90+(e.day/365)*690;
+   const div=document.createElement("div");
+   div.className=`marker ${i%2?"right":"left"} ${e.type}`;
+   div.style.top=y+"px";
+   div.innerHTML=`<h3>${e.icon} ${e.title}</h3>
+   <span class="badge">${e.kind}</span>
+   <span class="badge">${e.day} days ahead</span><br>
+   <span class="small">Fuel loss: ${money(e.fuelLoss)}/month · Probability ${e.prob}% · Severity ${e.severity}</span>`;
+   div.onclick=()=>showDetails(e);
+   map.appendChild(div);
+ });
+ document.getElementById("fuelGrades").innerHTML=fuels.map(f=>`<div class="routeCard"><b>${f[0]}</b><br><span class="badge">Strength ${f[1]}</span><span class="badge">Evap ${f[2]}%</span><span class="badge">Survival ${f[3]}</span></div>`).join("");
+ document.getElementById("routes").innerHTML=routeOptions.map((r,i)=>`<div class="routeCard ${i===3?'best':''}"><b>${r[0]} — ${r[1]}</b><br><span class="badge">Survival ${r[2]}%</span><span class="badge">Fuel preserved ${money(r[3])}</span><p class="small">${r[4]}</p></div>`).join("");
+ log("[MAP] Financial Route Map loaded");
+ log("[RADAR] "+events.length+" hazards placed on route ahead");
+ log("[CRASH MAP] Historical crash sites linked to collisions");
+ log("[RECALC] Route D currently highest survival route");
+}
+function showDetails(e){
+ document.getElementById("details").style.display="block";
+ document.getElementById("detailsBody").innerHTML=`
+ <h2>${e.icon} ${e.title}</h2>
+ <p><b>Marker Type:</b> ${e.kind}</p>
+ <p><b>Distance Ahead:</b> ${e.day} days</p>
+ <p><b>Fuel Loss:</b> ${money(e.fuelLoss)}/month</p>
+ <p><b>Collision Probability:</b> ${e.prob}%</p>
+ <p><b>Severity:</b> ${e.severity}</p>
+ <p><b>Affected Fuel Leaks:</b> ${e.cats.join(", ")}</p>
+ <h3>Crash Sites Already Hit</h3>
+ <ul>${e.crashes.map(c=>`<li>${c}</li>`).join("")}</ul>
+ <h3>Recommended Route</h3>
+ <p><b>${e.route}</b> — ${e.avoid}</p>`;
+ log("[SELECT] "+e.title+" opened");
+}
+function hideDetails(){document.getElementById("details").style.display="none"}
+function log(t){const c=document.getElementById("console");c.innerHTML+=t+"<br>";c.scrollTop=c.scrollHeight}
+init();
 </script>
 </body>
 </html>
