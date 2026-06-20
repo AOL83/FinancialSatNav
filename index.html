@@ -58,6 +58,9 @@ button.alt{background:#0e1626;color:var(--cyan)}
 .kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .kpi div{background:#08101d;border:1px solid #203a56;border-radius:10px;padding:8px}
 .sourcePill{display:inline-block;font-size:10px;border:1px solid #365a7e;border-radius:999px;padding:2px 6px;color:#b8d8ff;margin:2px}
+.breakdownItem{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid rgba(0,229,255,.12);font-size:12px}
+.breakdownItem b{color:var(--yellow)}
+.deltaDrop{color:var(--red);font-weight:bold}.deltaGain{color:var(--green);font-weight:bold}
 
 .marker{width:44px;height:44px;border-radius:50%;padding:0!important;display:flex;align-items:center;justify-content:center;font-size:21px;max-width:none!important}
 .marker h3,.marker .badge,.marker .small,.marker .sourcePill{display:none}
@@ -137,6 +140,11 @@ button.alt{background:#0e1626;color:var(--cyan)}
 <div><b id="fuelLost">£0</b><br><span class="small">Fuel Lost</span></div>
 <div><b id="evap">0%</b><br><span class="small">Evaporation</span></div>
 </div>
+<div class="routeCard">
+<b>Fuel Loss Breakdown</b>
+<div id="fuelBreakdown"></div>
+<div id="scanDelta" class="small"></div>
+</div>
 
 <h2 class="sectionTitle">Fiat Fuel Grades</h2>
 <div id="fuelGrades"></div>
@@ -191,6 +199,7 @@ const fallbackWorldEvents=[
 
 let activeEvents=[];
 let lastRawEvents=[];
+let previousFuelState=null;
 
 function vehicle(){
  return {
@@ -342,51 +351,35 @@ function getBestRoute(){
  return routes.sort((a,b)=>b.save-a.save)[0] || null;
 }
 
-function currentFuelState(){
- const v=vehicle();
- const baseEvap=fuelBase[v.fuel].evap;
- const eventLoss=activeEvents.reduce((s,e)=>s+(e.fuelLoss||0),0);
- const annualLoss=eventLoss*12;
- const baseLost=v.savings*(baseEvap/100);
- const totalLost=baseLost+annualLoss;
- const evapPct=v.savings?Math.round((totalLost/v.savings)*100):100;
- const remaining=Math.max(0,v.savings-totalLost);
- const netEngine=v.income+v.side-v.fixed;
- const survival=Math.max(1,Math.min(99,Math.round(85-evapPct+(netEngine/200)-(v.debt/1000))));
- return {v,baseEvap,eventLoss,annualLoss,baseLost,totalLost,evapPct,remaining,netEngine,survival};
-}
-
 function generateRadarMessage(){
  const state=currentFuelState();
+ const b=state.breakdown;
+ const biggest=b.items.slice(1).sort((a,b)=>b.value-a.value)[0];
+ const best=getBestRoute();
 
  if(!activeEvents.length){
    const watch=[
-    ["SCAN","No active collision markers. Watching central bank roadworks.","scan"],
-    ["BUYING POWER",`Fuel tank ${money(state.v.savings)}. Current base evaporation ${state.baseEvap}%.`,"impact"],
-    ["FUEL",`${state.v.fuel} fuel quality under observation. No new fuel degradation marker yet.`,"fuel"],
-    ["SAVINGS",`Savings fuel remains ${money(state.remaining)} after base evaporation model.`,"impact"],
-    ["ROUTE","No reroute required until a world event creates a marker.","quiet"],
-    ["MOBILITY","Transport, fuel and relocation pressure being scanned.","scan"],
-    ["DEBT","Debt exposure being watched against rate roadworks.","scan"],
-    ["HOUSING","Housing pressure scanner active. No high-impact marker yet.","scan"]
+    ["SCAN","Watching central banks, CPI, energy, FX, housing, tax and mobility pressure.","scan"],
+    ["BUYING POWER",`Base ${state.v.fuel} evaporation: ${money(b.baseLost)}/year.`,"impact"],
+    ["SAVINGS",`Fuel tank after base evaporation: ${money(state.remaining)}.`,"impact"],
+    ["FUEL",`${state.v.fuel} fuel quality under observation. No active route marker yet.`,"fuel"],
+    ["ROUTE","No reroute required until a discovered event hits the map.","quiet"]
    ];
    return watch[radarIndex++ % watch.length];
  }
 
- const evt=activeEvents[radarIndex % activeEvents.length];
- const best=getBestRoute();
- const crash=evt.crashMatches?.[0];
+ const before=previousFuelState?.survival ?? Math.max(1,Math.min(99,state.survival+10));
+ const drop=before-state.survival;
+ const evt=biggest?.event || activeEvents[radarIndex % activeEvents.length];
  const messages=[
-   ["BUYING POWER",`${evt.title}: ${money(evt.purchasingPowerLoss)} annual purchasing-power impact.`,"impact"],
-   ["FUEL",`${evt.title}: expected fuel drain ${money(evt.fuelLoss)}/month.`,"fuel"],
-   ["SAVINGS",`Current evaporation rate ${state.evapPct}%. Fuel lost ${money(state.totalLost)}.`,"impact"],
-   ["COLLISION",`${evt.kind}: probability ${evt.prob}% · severity ${evt.severity}.`,"alert"],
-   ["ATTRIBUTION",`${evt.chain?.join(" → ") || "Fuel impact chain calculated"}.`,"news"],
-   ["CRASH SITE",crash?`${crash.name}: previous PP loss ${crash.loss}% · recovery ${crash.recovery}.`:"No close crash site match yet.","news"],
-   ["ROUTE",best?`${best.name} saves ${money(best.save)} against ${best.event.title}.`:"Route calculation pending.","route"],
-   ["SURVIVAL",`Route survival now ${state.survival}%. Net engine ${money(state.netEngine)}/month.`,"route"],
-   ["DO NOTHING",evt.doNothing || `${evt.title} keeps draining fuel if ignored.`,"alert"],
-   ["MAP",`${activeEvents.length} route markers active. Next visible hazard: ${evt.title}.`,"route"]
+   ["ALERT",`Survival ${drop>0?'dropped':'changed'} ${before}% → ${state.survival}%.`,"alert"],
+   ["CAUSE",biggest?`${biggest.label} is biggest fuel drain: ${money(biggest.value)}/year.`:"Base evaporation is current main drain.","alert"],
+   ["BUYING POWER",`Total purchasing-power loss: ${money(state.totalLost)}. Evaporation ${state.evapPct}%.`,"impact"],
+   ["FUEL",evt?`${evt.title}: ${money(evt.fuelLoss)}/month fuel drain.`:"Fuel impact calculated.","fuel"],
+   ["SAVINGS",`Real fuel remaining: ${money(state.remaining)} from ${money(state.v.savings)} fuel tank.`,"impact"],
+   ["ROUTE",best?`${best.name} preserves ${money(best.save)}. ${best.type}.`:"Route calculation pending.","route"],
+   ["ACTION",best?best.why:"Increase engine output or reduce exposed fuel leaks.","route"],
+   ["CRASH SITE",evt?.crashMatches?.[0]?`${evt.crashMatches[0].name}: ${evt.crashMatches[0].loss}% prior PP loss.`:"Crash site scan active.","news"]
  ];
  radarIndex++;
  return messages[radarIndex % messages.length];
@@ -427,10 +420,15 @@ async function runScannerCycle(){
        const evt=activeEvents.find(x=>x.title===IntelligencePipeline.classify(EventLibrary[step.eventKey]).title) || activeEvents[activeEvents.length-1];
        scannerLog("MAP","Marker added to route: "+EventLibrary[step.eventKey].title,"route",80);
        if(evt){
-         scannerLog("FUEL",evt.title+" calculated against vehicle: "+money(evt.fuelLoss)+"/month","fuel",120);
-         scannerLog("BUYING POWER",evt.title+" annual impact: "+money(evt.purchasingPowerLoss),"impact",180);
-         scannerLog("CRASH SITE",(evt.crashMatches?.[0]?.name||"No prior crash match")+" checked","news",240);
-         scannerLog("RECALC","Best route: "+evt.bestRoute.name+" saves "+money(evt.bestRoute.save),"route",300);
+         const state=currentFuelState();
+         const b=state.breakdown.items.slice(1).sort((a,b)=>b.value-a.value)[0];
+         scannerLog("ALERT","Survival now "+state.survival+"% after route marker update","alert",80);
+         scannerLog("CAUSE",(b?b.label:evt.title)+" fuel drain: "+money(b?b.value:evt.purchasingPowerLoss)+"/year","alert",140);
+         scannerLog("FUEL",evt.title+" calculated against vehicle: "+money(evt.fuelLoss)+"/month","fuel",200);
+         scannerLog("BUYING POWER",evt.title+" annual impact: "+money(evt.purchasingPowerLoss),"impact",260);
+         scannerLog("CRASH SITE",(evt.crashMatches?.[0]?.name||"No prior crash match")+" checked","news",320);
+         scannerLog("ROUTE",evt.bestRoute.name+" preserves "+money(evt.bestRoute.save),"route",380);
+         scannerLog("ACTION",evt.bestRoute.why,"route",440);
        }else{
          scannerLog("RECALC","Route option generated from "+EventLibrary[step.eventKey].title,"route",160);
        }
@@ -443,6 +441,7 @@ async function runScannerCycle(){
 }
 
 function rebuildFromRawEvents(){
+ previousFuelState=currentFuelState();
  const dedup=new Map();
  lastRawEvents
    .map(r=>IntelligencePipeline.classify(r))
@@ -456,26 +455,74 @@ function rebuildFromRawEvents(){
 }
 
 
-function recalculate(){
- const v=vehicle();
+
+function calculateFuelBreakdown(v){
  const baseEvap=fuelBase[v.fuel].evap;
- const eventLoss=activeEvents.reduce((s,e)=>s+e.fuelLoss,0);
- const annualLoss=eventLoss*12;
  const baseLost=v.savings*(baseEvap/100);
- const totalLost=baseLost+annualLoss;
+ const items=[{
+   label:`Base ${v.fuel} evaporation`,
+   value:baseLost,
+   type:"base"
+ }];
+ activeEvents.forEach(e=>{
+   items.push({
+     label:e.title,
+     value:(e.fuelLoss||0)*12,
+     type:e.category,
+     event:e
+   });
+ });
+ const total=items.reduce((s,x)=>s+x.value,0);
+ const eventTotal=items.filter(x=>x.type!=="base").reduce((s,x)=>s+x.value,0);
+ return {items,total,eventTotal,baseLost,baseEvap};
+}
+
+function updateFuelBreakdown(v,state){
+ const b=calculateFuelBreakdown(v);
+ const biggest=b.items.slice(1).sort((a,b)=>b.value-a.value)[0];
+ fuelBreakdown.innerHTML=b.items.map(x=>`
+   <div class="breakdownItem">
+     <span>${x.label}</span>
+     <b>${money(x.value)}</b>
+   </div>
+ `).join("")+`
+   <div class="breakdownItem">
+     <span>Total fuel loss</span>
+     <b>${money(b.total)}</b>
+   </div>
+ `;
+ const before=previousFuelState?.survival ?? Math.max(1,Math.min(99,Math.round(85-b.baseEvap+(v.income+v.side-v.fixed)/200-(v.debt/1000))));
+ const after=state.survival;
+ const delta=after-before;
+ const reason=biggest?`${biggest.label} is the biggest fuel drain at ${money(biggest.value)}/year.`:"Base fuel evaporation only.";
+ scanDelta.innerHTML=`Before scan: ${before}% · After scan: ${after}% · <span class="${delta<0?'deltaDrop':'deltaGain'}">${delta<0?'Dropped':'Changed'} ${Math.abs(delta)}%</span><br>Reason: ${reason}`;
+ return {breakdown:b,biggest,before,after,delta};
+}
+
+function currentFuelState(){
+ const v=vehicle();
+ const b=calculateFuelBreakdown(v);
+ const totalLost=b.total;
  const remaining=Math.max(0,v.savings-totalLost);
  const evapPct=v.savings?Math.round((totalLost/v.savings)*100):100;
  const netEngine=v.income+v.side-v.fixed;
  const survival=Math.max(1,Math.min(99,Math.round(85-evapPct+(netEngine/200)-(v.debt/1000))));
- fuelFill.style.width=Math.max(0,Math.min(100,100-evapPct))+"%";
- document.getElementById("survival").textContent=survival+"%";
- fuelRemaining.textContent=money(remaining);
- fuelLost.textContent=money(totalLost);
- evap.textContent=evapPct+"%";
+ return {v,baseEvap:b.baseEvap,eventLoss:b.eventTotal/12,annualLoss:b.eventTotal,baseLost:b.baseLost,totalLost,evapPct,remaining,netEngine,survival,breakdown:b};
+}
+function recalculate(){
+ const state=currentFuelState();
+ const v=state.v;
+ fuelFill.style.width=Math.max(0,Math.min(100,100-state.evapPct))+"%";
+ document.getElementById("survival").textContent=state.survival+"%";
+ fuelRemaining.textContent=money(state.remaining);
+ fuelLost.textContent=money(state.totalLost);
+ evap.textContent=state.evapPct+"%";
+ const explain=updateFuelBreakdown(v,state);
  renderFuelGrades(v);
- renderRoutes(v,eventLoss,survival);
+ renderRoutes(v,state.eventLoss,state.survival);
  renderMap();
- localStorage.setItem("FinancialSatNavRouteIntelligenceV3",JSON.stringify({vehicle:v,activeEvents}));
+ localStorage.setItem("FinancialSatNavRouteIntelligenceV3",JSON.stringify({vehicle:v,activeEvents,previousFuelState:{survival:state.survival,totalLost:state.totalLost}}));
+ return explain;
 }
 
 function renderFuelGrades(v){
@@ -578,6 +625,7 @@ function boot(){
    try{
      const s=JSON.parse(saved);
      if(Array.isArray(s.activeEvents)){activeEvents=s.activeEvents;log("[RESTORE] Previous discovered route events restored")}
+     if(s.previousFuelState) previousFuelState=s.previousFuelState;
    }catch(e){}
  }
  recalculate();
