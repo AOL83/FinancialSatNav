@@ -141,6 +141,10 @@ button.alt{background:#0e1626;color:var(--cyan)}
 .routeJourneyStats{font-size:12px;color:var(--muted);margin-top:6px}
 .destinationImpactList{margin:8px 0 0;padding-left:18px}
 
+
+.routeJourneyLabel{opacity:0;pointer-events:none;transition:.2s}
+.routeJourneyPin:hover .routeJourneyLabel{opacity:1}
+
 </style>
 </head>
 <body>
@@ -236,6 +240,13 @@ button.alt{background:#0e1626;color:var(--cyan)}
 <textarea id="goalChecklist" placeholder="Save first £1,000&#10;Save 1 month expenses&#10;Save 3 months expenses"></textarea>
 <label>Milestones - numbers separated by commas</label>
 <input id="goalMilestones" placeholder="1000,2500,5000">
+<div class="goalActionRow">
+<button class="alt" onclick="loadGoalTemplate('Emergency Fund')">Emergency Fund</button>
+<button class="alt" onclick="loadGoalTemplate('Debt Free')">Debt Free</button>
+<button class="alt" onclick="loadGoalTemplate('House Deposit')">House Deposit</button>
+<button class="alt" onclick="loadGoalTemplate('Home Purchase')">Home Purchase</button>
+<button class="alt" onclick="loadGoalTemplate('Financial Independence')">Financial Independence</button>
+</div>
 <div class="goalActions">
 <button onclick="saveGoalFromEditor()">SAVE GOAL</button>
 <button class="alt" onclick="clearGoalEditor()">CLEAR</button>
@@ -588,7 +599,7 @@ function loadLifeGoals(){
    const saved=JSON.parse(localStorage.getItem("FinancialSatNavLifeGoals")||"null");
    if(Array.isArray(saved)&&saved.length)return saved.map(normaliseGoal);
  }catch(e){}
- return DefaultLifeGoals.map(normaliseGoal);
+ return [];
 }
 function saveLifeGoals(){
  localStorage.setItem("FinancialSatNavLifeGoals",JSON.stringify(LifeGoals));
@@ -667,6 +678,21 @@ function saveGoalFromEditor(){
  addConsole("LIFE ROUTE","Goal saved: "+g.name,"route");
  recalculate();
 }
+
+function loadGoalTemplate(type){
+ const t=DefaultLifeGoals.find(g=>g.type===type||g.name===type);
+ if(!t)return;
+ goalName.value=t.name;
+ goalType.value=t.type;
+ goalTarget.value=t.target;
+ goalCurrent.value=t.current;
+ goalYear.value=t.year;
+ goalPriority.value=t.priority;
+ goalIcon.value=t.icon;
+ goalChecklist.value=(t.checklist||[]).join("\n");
+ goalMilestones.value=(t.milestones||[]).join(",");
+}
+
 function iconForGoal(type){
  return {"Emergency Fund":"🛡️","Debt Free":"✅","House Deposit":"🏠","Home Purchase":"🔑","Investment Target":"📈","Financial Independence":"🌅"}[type]||"🏁";
 }
@@ -810,7 +836,7 @@ function renderLifeGoalPins(){
  if(!map)return;
  [...map.querySelectorAll(".lifeGoalPin")].forEach(x=>x.remove());
  const best=bestMissionRoute();
- allGoalForecasts(best).forEach(g=>{
+ return; allGoalForecasts(best).forEach(g=>{
    const div=document.createElement("div");
    div.className=`lifeGoalPin ${g.progress>=100?'done':g.success<45?'risk':g.success<70?'warn':''}`;
    div.style.top=(12+(g.year/10)*76)+"%";
@@ -869,7 +895,7 @@ function renderMissionSystems(){
  renderMissionControl();
  renderLifeTimeline();
  renderAchievementPrediction();
- renderLifeGoalPins();
+ // life goal pins removed from map; destination-only navigation
 }
 
 let ActiveDestinationId=localStorage.getItem("FinancialSatNavActiveDestination")||"";
@@ -887,6 +913,12 @@ function setActiveDestination(id){
 }
 function syncDestinationSelector(){
  const sel=document.getElementById("destinationSelector");
+ const summary=document.getElementById("destinationFocusSummary");
+ if(!LifeGoals.length){
+   if(sel) sel.innerHTML='<option>No destination selected</option>';
+   if(summary) summary.innerHTML='Create your first destination or choose a template.';
+   return;
+ }
  if(!sel)return;
  const current=ActiveDestinationId || (LifeGoals[0]?.id||"");
  sel.innerHTML=LifeGoals.map(g=>`<option value="${g.id}" ${g.id===current?"selected":""}>${g.icon||"🏁"} ${g.year}Y · ${g.name}</option>`).join("");
@@ -926,7 +958,7 @@ function renderDestinationRouteMap(){
  const f=goalForecast(goal,best);
  const current=goalCurrentFuel(goal);
  const milestones=(goal.milestones||[]).filter(m=>m>0).sort((a,b)=>a-b);
- const visibleMilestones=milestones.length?milestones:[Math.round(goal.target*.25),Math.round(goal.target*.5),goal.target];
+ const visibleMilestones=(milestones.length?milestones:[Math.round(goal.target*.25),Math.round(goal.target*.5),goal.target]).slice(0,3);
 
  const today=document.createElement("div");
  today.className="routeJourneyPin routeFix";
@@ -947,7 +979,10 @@ function renderDestinationRouteMap(){
    map.appendChild(pin);
  });
 
- activeEvents.forEach((e,i)=>{
+ activeEvents
+ .filter(e=>(e.severity||0)>=70 || (e.purchasingPowerLoss||0)>1500)
+ .slice(0,3)
+ .forEach((e,i)=>{
    const pct=20+((Math.min(365,Math.max(0,e.day))/365)*54);
    const side=i%2?-62:24;
    const block=document.createElement("div");
@@ -1109,7 +1144,7 @@ function renderMap(){
 
    map.appendChild(recalc);
  }
- renderLifeGoalPins();
+ // life goal pins removed from map; destination-only navigation
 }
 function showDetails(e){
  details.style.display="block";document.body.style.overflow="hidden";
@@ -1170,7 +1205,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")hideDetails()});
    renderMissionControl();
    renderLifeTimeline();
    renderAchievementPrediction();
-   renderLifeGoalPins();
+   // life goal pins removed from map; destination-only navigation
    renderDestinationRouteMap();
  };
  const oldRenderMissionControl=window.renderMissionControl||renderMissionControl;
