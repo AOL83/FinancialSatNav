@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Financial SatNav™ Route Intelligence v3</title>
+<style>
+:root{
+  --bg:#05070d;--panel:#0b1220;--road:#141f31;--line:#29435f;
+  --cyan:#00e5ff;--green:#39ff88;--yellow:#ffe600;--red:#ff295f;--purple:#b026ff;
+  --text:#eaf7ff;--muted:#91a8c4;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 20% 0%,rgba(0,229,255,.14),transparent 30%),radial-gradient(circle at 80% 0%,rgba(57,255,136,.10),transparent 25%),#05070d;color:var(--text);font-family:Arial,system-ui,sans-serif}
+header{position:sticky;top:0;z-index:20;background:rgba(5,7,13,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,229,255,.25);padding:12px}
+h1{margin:0;color:var(--yellow);text-shadow:0 0 12px var(--yellow);font-size:clamp(22px,5vw,38px)}
+.sub{color:var(--muted);font-size:13px;margin-top:5px}
+.app{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);gap:10px;padding:10px;min-height:calc(100vh - 78px);max-width:100vw;overflow:hidden}
+.panel{background:rgba(11,18,32,.9);border:1px solid rgba(0,229,255,.25);border-radius:16px;padding:12px;overflow:auto;min-width:0}
+.mapWrap{position:relative;background:linear-gradient(180deg,#07101c,#08111f);border:1px solid rgba(0,229,255,.25);border-radius:18px;overflow:hidden;min-height:620px;width:100%;min-width:0}
+.routeMap{position:relative;width:100%;height:calc(100vh - 102px);min-height:720px;margin:0 auto;overflow:hidden}
+.road{position:absolute;left:50%;top:7%;transform:translateX(-50%);width:20px;height:82%;border-radius:99px;background:linear-gradient(180deg,var(--green),var(--cyan),var(--yellow),var(--red));box-shadow:0 0 32px rgba(0,229,255,.5)}
+.vehicle{position:absolute;left:50%;top:3%;transform:translateX(-50%);width:92px;height:52px;border-radius:18px;background:#07101d;border:2px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 25px var(--green);z-index:5}
+.destination{position:absolute;left:50%;bottom:2%;transform:translateX(-50%);background:#111;border:2px solid var(--yellow);border-radius:16px;padding:12px;text-align:center;box-shadow:0 0 22px var(--yellow);z-index:4;max-width:280px}
+.marker{position:absolute;width:min(330px,38%);background:rgba(11,18,32,.97);border:1px solid var(--cyan);border-radius:14px;padding:10px;box-shadow:0 0 18px rgba(0,229,255,.22);cursor:pointer;z-index:3;overflow-wrap:anywhere}
+.marker:before{content:"";position:absolute;top:28px;width:calc(50vw - 230px);max-width:125px;min-width:32px;height:3px;background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+.marker.left:before{right:calc(-1 * min(125px, max(32px, calc(50vw - 230px))))}.marker.right:before{left:calc(-1 * min(125px, max(32px, calc(50vw - 230px))))}
+.marker.left{left:clamp(10px,7%,120px)}.marker.right{right:clamp(10px,7%,120px)}
+.marker.government{border-color:var(--yellow)}.marker.government:before{background:var(--yellow)}
+.marker.market{border-color:var(--red)}.marker.market:before{background:var(--red)}
+.marker.black{border-color:var(--purple)}.marker.black:before{background:var(--purple)}
+.marker.recalc{border-color:var(--green)}.marker.recalc:before{background:var(--green)}
+.marker.fuel{border-color:var(--cyan)}.marker.fuel:before{background:var(--cyan)}
+.marker h3{margin:0 0 6px;font-size:clamp(13px,1.4vw,16px);line-height:1.2}
+.badge{display:inline-block;border:1px solid rgba(255,230,0,.35);border-radius:999px;padding:3px 7px;font-size:11px;color:var(--yellow);margin:2px}
+.small{font-size:clamp(11px,1.1vw,12px);color:var(--muted);line-height:1.35}
+.routeCard{border:1px solid rgba(0,229,255,.25);border-radius:12px;padding:9px;margin:8px 0;background:#08101d}
+.routeCard.best{border-color:var(--green);box-shadow:0 0 15px rgba(57,255,136,.18)}
+.fuelbar{height:18px;border-radius:99px;background:#182438;overflow:hidden;border:1px solid #32455f}
+.fill{height:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green))}
+.console{font-family:monospace;font-size:12px;background:#02050a;border:1px solid #1b304a;border-radius:12px;padding:10px;height:150px;overflow:auto}
+button,input,select{width:100%;padding:9px;margin:5px 0;border-radius:10px;background:#0e1626;border:1px solid #284260;color:white}
+button{background:linear-gradient(90deg,var(--cyan),var(--green));color:#021019;font-weight:bold;cursor:pointer}
+button.alt{background:#0e1626;color:var(--cyan)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.details{position:fixed;inset:0;width:100vw;height:100vh;overflow:auto;background:radial-gradient(circle at 20% 0%,rgba(0,229,255,.14),transparent 28%),#07101d;border:0;border-radius:0;padding:clamp(14px,3vw,32px);box-shadow:0 0 60px rgba(255,230,0,.25);z-index:50;display:none}
+#detailsBody{max-width:960px;margin:0 auto;background:rgba(11,18,32,.96);border:1px solid var(--yellow);border-radius:18px;padding:clamp(14px,3vw,28px);box-shadow:0 0 30px rgba(255,230,0,.18)}
+#detailsBody h2{color:var(--yellow);font-size:clamp(24px,4vw,42px);margin-top:0}
+#detailsBody h3{color:var(--cyan);margin-top:22px}
+#detailsBody p,#detailsBody li{font-size:clamp(15px,1.8vw,18px);line-height:1.5}
+.close{position:fixed;top:14px;right:14px;width:auto;background:#2a1220;color:white;border:1px solid var(--red);z-index:60;padding:10px 14px}
+.sectionTitle{margin-top:14px;color:var(--cyan)}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi div{background:#08101d;border:1px solid #203a56;border-radius:10px;padding:8px}
+.sourcePill{display:inline-block;font-size:10px;border:1px solid #365a7e;border-radius:999px;padding:2px 6px;color:#b8d8ff;margin:2px}
+@media(max-width:980px){
+  .app{grid-template-columns:1fr;height:auto;overflow:visible}
+  .mapWrap{height:78vh;min-height:620px}
+  .routeMap{height:78vh;min-height:620px}
+  .marker{width:min(280px,42%)}
+  .marker.left{left:8px}
+  .marker.right{right:8px}
+  .marker:before{width:34px}
+  .marker.left:before{right:-34px}
+  .marker.right:before{left:-34px}
+}
+@media(max-width:620px){
+  .marker{width:44%;padding:8px}
+  .badge{font-size:9px;padding:2px 5px}
+  .marker h3{font-size:12px}
+  .small{font-size:10px}
+  .destination{font-size:12px;max-width:210px;padding:8px}
+}
+</style>
+</head>
+<body>
+<header>
+<h1>FINANCIAL SATNAV™ ROUTE INTELLIGENCE</h1>
+<div class="sub">Single-file build · Fixed vehicle profile + discovered world events → collision markers, fuel attribution, crash matches, reroutes</div>
+</header>
+
+<div class="app">
+<aside class="panel">
+<h2>Vehicle Settings</h2>
+<label>Fuel Type</label>
+<select id="fuelType" onchange="recalculate()">
+<option>GBP</option><option>USD</option><option>EUR</option><option>JPY</option><option>CHF</option>
+</select>
+<div class="grid2">
+<div><label>Income Engine</label><input id="income" type="number" value="3000" oninput="recalculate()"></div>
+<div><label>Side Engine</label><input id="side" type="number" value="250" oninput="recalculate()"></div>
+</div>
+<div class="grid2">
+<div><label>Fuel Tank</label><input id="savings" type="number" value="10000" oninput="recalculate()"></div>
+<div><label>Debt</label><input id="debt" type="number" value="2500" oninput="recalculate()"></div>
+</div>
+<label>Fixed Costs / Vehicle Weight</label><input id="fixed" type="number" value="1800" oninput="recalculate()">
+<div class="grid2">
+<div><label>Housing Exposure</label><input id="housing" type="number" value="900" oninput="recalculate()"></div>
+<div><label>Energy Exposure</label><input id="energy" type="number" value="220" oninput="recalculate()"></div>
+</div>
+<div class="grid2">
+<div><label>Food Exposure</label><input id="food" type="number" value="520" oninput="recalculate()"></div>
+<div><label>Debt Exposure</label><input id="debtExp" type="number" value="160" oninput="recalculate()"></div>
+</div>
+<button onclick="runWorldScan(true)">RUN WORLD INTELLIGENCE SCAN</button>
+<button class="alt" onclick="clearDiscoveredEvents()">CLEAR ROUTE EVENTS</button>
+
+<h2 class="sectionTitle">Fuel Tank</h2>
+<div class="fuelbar"><div id="fuelFill" class="fill"></div></div>
+<div class="kpi">
+<div><b id="survival">0%</b><br><span class="small">Survival Rating</span></div>
+<div><b id="fuelRemaining">£0</b><br><span class="small">Real Fuel Remaining</span></div>
+<div><b id="fuelLost">£0</b><br><span class="small">Fuel Lost</span></div>
+<div><b id="evap">0%</b><br><span class="small">Evaporation</span></div>
+</div>
+
+<h2 class="sectionTitle">Fiat Fuel Grades</h2>
+<div id="fuelGrades"></div>
+
+<h2 class="sectionTitle">Route Recalculation</h2>
+<div id="routes"></div>
+
+<h2 class="sectionTitle">Live Status Console</h2>
+<div class="console" id="console"></div>
+</aside>
+
+<main class="mapWrap">
+<div class="routeMap" id="routeMap">
+<div class="road"></div>
+<div class="vehicle">🚗</div>
+<div class="destination">🏁<br><b>12 MONTH DESTINATION</b><br><span class="small">Goal: arrive with fuel reserve intact</span></div>
+</div>
+</main>
+</div>
+
+<div class="details" id="details">
+<button class="close" onclick="hideDetails()">X</button>
+<div id="detailsBody"></div>
+</div>
+
+<script>
+const money=n=>"£"+Number(n).toLocaleString("en-GB",{maximumFractionDigits:0});
+const fuelBase={
+ GBP:{strength:74,stability:72,evap:16},
+ USD:{strength:84,stability:80,evap:10},
+ EUR:{strength:78,stability:76,evap:12},
+ JPY:{strength:66,stability:70,evap:14},
+ CHF:{strength:86,stability:88,evap:6}
+};
+const crashSites=[
+ {name:"UK Energy Crisis 2022",type:"Energy Shock",loss:14,recovery:"18 months",severity:88,cats:["energy","food","transport"],outcome:"Utilities surged, then food and transport followed."},
+ {name:"Germany Energy Shock 2022",type:"Energy Shock",loss:11,recovery:"16 months",severity:84,cats:["energy","food","transport"],outcome:"Energy pressure fed household and industrial costs."},
+ {name:"Turkey Currency Crisis 2021",type:"Currency Weakness",loss:45,recovery:"unresolved",severity:96,cats:["food","housing","currency"],outcome:"Currency weakness degraded fuel quality and imported inflation accelerated."},
+ {name:"Argentina Inflation Shock 2023",type:"Inflation Shock",loss:54,recovery:"unresolved",severity:98,cats:["food","energy","housing"],outcome:"Rapid fuel evaporation across essential household categories."},
+ {name:"US Regional Banking Stress 2023",type:"Credit Shock",loss:6,recovery:"9 months",severity:74,cats:["debt","housing"],outcome:"Credit tightened, debt servicing and confidence deteriorated."},
+ {name:"COVID Supply Chain Shock 2020",type:"Supply Chain Shock",loss:18,recovery:"30 months",severity:92,cats:["food","energy","transport"],outcome:"Supply disruption raised transport, food, and energy costs."}
+];
+
+const fallbackWorldEvents=[
+ {source:"Central Bank Monitor",sourceType:"central-bank",title:"UK Rate Decision Detected",body:"Bank rate, interest rate and mortgage pressure detected. Debt and housing roadworks likely.",publishedAt:new Date().toISOString(),trust:92},
+ {source:"Energy Market Monitor",sourceType:"energy",title:"Energy Price Shock Detected",body:"Energy, gas, electricity and oil cost pressure detected. Utilities, food and transport fuel leaks likely.",publishedAt:new Date().toISOString(),trust:86},
+ {source:"Inflation Release Monitor",sourceType:"inflation",title:"Food Inflation Risk Detected",body:"CPI inflation and food prices remain elevated. Purchasing power fuel evaporation detected.",publishedAt:new Date().toISOString(),trust:88},
+ {source:"FX Market Monitor",sourceType:"currency",title:"GBP Fuel Weakness Detected",body:"Currency weakness and FX pressure detected. Import cost pressure may degrade fiat fuel quality.",publishedAt:new Date().toISOString(),trust:72},
+ {source:"Global Event Monitor",sourceType:"black-swan",title:"Supply Chain Shock Detected",body:"Supply chain disruption, shipping pressure and geopolitical risk detected.",publishedAt:new Date().toISOString(),trust:74},
+ {source:"Government Policy Monitor",sourceType:"government",title:"Tax Change Roadworks Logged",body:"Tax, fiscal policy and benefit changes may reduce household disposable engine output.",publishedAt:new Date().toISOString(),trust:78}
+];
+
+let activeEvents=[];
+let lastRawEvents=[];
+
+function vehicle(){
+ return {
+  fuel:fuelType.value,
+  income:+income.value||0,
+  side:+side.value||0,
+  savings:+savings.value||0,
+  debt:+debt.value||0,
+  fixed:+fixed.value||0,
+  exposure:{housing:+housing.value||0,energy:+energy.value||0,food:+food.value||0,debt:+debtExp.value||0,currency:fuelBase[fuelType.value].evap}
+ };
+}
+
+const IntelligencePipeline={
+ async discover(){
+   const out=[];
+   const gdelt=await SourceConnectors.gdelt();
+   const fx=await SourceConnectors.fx();
+   out.push(...gdelt,...fx);
+   if(out.length===0){
+     log("[DISCOVERY] Live source blocked/unavailable → local fallback intelligence feed loaded");
+     return fallbackWorldEvents;
+   }
+   log("[DISCOVERY] Live source records discovered: "+out.length);
+   return out.concat(fallbackWorldEvents.slice(0,2));
+ },
+ classify(raw){
+   const text=(raw.title+" "+raw.body).toLowerCase();
+   const type = /war|geopolitical|supply chain|shipping|pandemic|banking crisis|sovereign/.test(text) ? "black"
+    : /tax|budget|benefit|fiscal|bank rate|interest rate|central bank|policy|mortgage/.test(text) ? "government"
+    : /currency|fx|sterling|gbp|exchange/.test(text) ? "fuel"
+    : "market";
+   let category="INFLATION";
+   let title="Inflation Fuel Evaporation";
+   let cats=["food","energy"];
+   let kind="Market Roadworks";
+   let icon="⚠";
+   let baseLoss=95, prob=62, severity=60, day=120;
+   if(/energy|gas|electric|oil|utilities/.test(text)){category="ENERGY_SHOCK";title="Energy Price Shock Detected";cats=["energy","food","transport"];kind="Market Collision";icon="⚠";baseLoss=187;prob=82;severity=86;day=74;}
+   else if(/interest rate|bank rate|mortgage|central bank|rate decision/.test(text)){category="RATE_RISE";title="Rate Decision Roadworks Detected";cats=["housing","debt"];kind="Government Roadworks";icon="🚧";baseLoss=140;prob=78;severity=72;day=38;}
+   else if(/tax|budget|benefit|fiscal/.test(text)){category="TAX_CHANGE";title="Tax Change Roadworks Logged";cats=["income"];kind="Government Roadworks";icon="🚧";baseLoss=87;prob=58;severity=55;day=245;}
+   else if(/currency|fx|sterling|gbp|exchange/.test(text)){category="CURRENCY_WEAKNESS";title="Fiat Fuel Weakness Detected";cats=["currency","food","energy"];kind="Fuel Quality Warning";icon="⛽";baseLoss=120;prob=62;severity=66;day=138;}
+   else if(/housing|rent|mortgage/.test(text)){category="HOUSING_PRESSURE";title="Housing Cost Roadworks Detected";cats=["housing","debt"];kind="Market Roadworks";icon="🚧";baseLoss=160;prob=70;severity=74;day=95;}
+   else if(/food|cpi|inflation|prices|grocery/.test(text)){category="FOOD_INFLATION";title="Food Inflation Risk Detected";cats=["food"];kind="Market Roadworks";icon="⚠";baseLoss=96;prob=68;severity=61;day=112;}
+   else if(/supply chain|shipping|geopolitical|war|disruption/.test(text)){category="SUPPLY_CHAIN";title="Supply Chain Shock Detected";cats=["food","energy","transport"];kind="Black Swan Roadworks";icon="💥";baseLoss=230;prob=44;severity=88;day=164;}
+   return {...raw,id:hash(raw.title+raw.source+category),type,category,title,kind,icon,cats,baseLoss,prob,severity,day};
+ },
+ attribute(evt){
+   const chains={
+     ENERGY_SHOCK:["Energy rises","Transport rises","Food rises","Fuel leak opens"],
+     RATE_RISE:["Rate rises","Debt costs rise","Disposable engine output falls","Fuel drain"],
+     TAX_CHANGE:["Government roadworks","Net income falls","Fuel loss"],
+     CURRENCY_WEAKNESS:["Fuel quality degrades","Imports cost more","Prices rise","Purchasing power falls"],
+     FOOD_INFLATION:["Food prices rise","Essentials cost more","Fuel evaporates faster"],
+     HOUSING_PRESSURE:["Housing costs rise","Fixed vehicle weight increases","Route range falls"],
+     SUPPLY_CHAIN:["Disruption hits goods","Transport costs rise","Food and energy pressure increases"],
+     INFLATION:["Prices rise","Same fuel travels less distance","Fuel evaporation"]
+   };
+   return {...evt,chain:chains[evt.category]||chains.INFLATION};
+ },
+ impact(evt,v){
+   let mult=1;
+   if(evt.cats.includes("housing")) mult += v.exposure.housing/3000;
+   if(evt.cats.includes("energy")) mult += v.exposure.energy/1000;
+   if(evt.cats.includes("food")) mult += v.exposure.food/1600;
+   if(evt.cats.includes("debt")) mult += v.exposure.debt/800;
+   if(evt.cats.includes("currency")) mult += fuelBase[v.fuel].evap/100;
+   if(evt.cats.includes("income")) mult += Math.max(0,3000-v.income)/3000;
+   const monthly=Math.round(evt.baseLoss*mult*(evt.prob/100));
+   const annual=monthly*12;
+   const evapPct=v.savings?Math.round((annual/v.savings)*100):100;
+   const doNothing=`If ignored, this marker drains around ${money(monthly)}/month and can remove ${money(annual)} of route fuel over 12 months.`;
+   return {...evt,fuelLoss:monthly,purchasingPowerLoss:annual,fuelEvaporationPct:evapPct,doNothing};
+ },
+ crashMatch(evt){
+   const matched=crashSites.filter(c=>c.cats.some(x=>evt.cats.includes(x))||evt.title.toLowerCase().includes(c.type.split(" ")[0].toLowerCase()));
+   return {...evt,crashMatches:matched};
+ },
+ reroute(evt,v){
+   const routes=[
+     {name:"Route A",type:"Build Fuel Reserve",save:evt.fuelLoss*4,survivalBoost:10,why:"Add reserve before nearest collision marker."},
+     {name:"Route B",type:"Reduce Exposure",save:evt.fuelLoss*6,survivalBoost:16,why:"Reduce the largest exposed fuel leak before impact."},
+     {name:"Route C",type:"Delay Major Purchases",save:evt.fuelLoss*3,survivalBoost:8,why:"Avoid new commitments until roadworks clear."},
+     {name:"Route D",type:"Increase Engine Output",save:evt.fuelLoss*8,survivalBoost:20,why:"Add side engine before collision window."}
+   ].sort((a,b)=>b.save-a.save);
+   return {...evt,routes,bestRoute:routes[0]};
+ },
+ marker(evt){ return evt; },
+ async run(){
+   const raw=await this.discover();
+   lastRawEvents=raw;
+   const dedup=new Map();
+   raw.map(r=>this.classify(r)).map(e=>this.attribute(e)).map(e=>this.impact(e,vehicle())).map(e=>this.crashMatch(e)).map(e=>this.reroute(e,vehicle())).forEach(e=>dedup.set(e.category,e));
+   activeEvents=[...dedup.values()].sort((a,b)=>a.day-b.day);
+   log("[PIPELINE] World → classification → attribution → fuel impact → crash match → route marker complete");
+   recalculate();
+ }
+};
+
+const SourceConnectors={
+ async gdelt(){
+   try{
+     const q=encodeURIComponent("(inflation OR energy prices OR interest rates OR supply chain OR currency weakness OR tax changes OR housing costs)");
+     const url=`https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&format=json&maxrecords=12&sort=hybridrel`;
+     const r=await fetch(url,{cache:"no-store"});
+     if(!r.ok) throw new Error("GDELT blocked");
+     const j=await r.json();
+     return (j.articles||[]).map(a=>({source:"GDELT Global Event Feed",sourceType:"news",title:a.title||"World event",body:`${a.title||""} ${a.domain||""} ${a.sourceCountry||""}`,publishedAt:a.seendate||new Date().toISOString(),url:a.url||"",trust:70}));
+   }catch(e){ log("[SOURCE] GDELT unavailable in this browser context"); return []; }
+ },
+ async fx(){
+   try{
+     const r=await fetch("https://api.frankfurter.app/latest?from=GBP",{cache:"no-store"});
+     if(!r.ok) throw new Error("FX blocked");
+     const j=await r.json();
+     return [{source:"Frankfurter FX Feed",sourceType:"fx",title:"GBP FX Fuel Quality Snapshot",body:`GBP exchange rates updated EUR ${j.rates?.EUR} USD ${j.rates?.USD}. Currency and exchange rate pressure can degrade fiat fuel quality.`,publishedAt:j.date||new Date().toISOString(),url:"https://api.frankfurter.app",trust:74}];
+   }catch(e){ log("[SOURCE] FX feed unavailable in this browser context"); return []; }
+ }
+};
+
+function recalculate(){
+ const v=vehicle();
+ const baseEvap=fuelBase[v.fuel].evap;
+ const eventLoss=activeEvents.reduce((s,e)=>s+e.fuelLoss,0);
+ const annualLoss=eventLoss*12;
+ const baseLost=v.savings*(baseEvap/100);
+ const totalLost=baseLost+annualLoss;
+ const remaining=Math.max(0,v.savings-totalLost);
+ const evapPct=v.savings?Math.round((totalLost/v.savings)*100):100;
+ const netEngine=v.income+v.side-v.fixed;
+ const survival=Math.max(1,Math.min(99,Math.round(85-evapPct+(netEngine/200)-(v.debt/1000))));
+ fuelFill.style.width=Math.max(0,Math.min(100,100-evapPct))+"%";
+ document.getElementById("survival").textContent=survival+"%";
+ fuelRemaining.textContent=money(remaining);
+ fuelLost.textContent=money(totalLost);
+ evap.textContent=evapPct+"%";
+ renderFuelGrades(v);
+ renderRoutes(v,eventLoss,survival);
+ renderMap();
+ localStorage.setItem("FinancialSatNavRouteIntelligenceV3",JSON.stringify({vehicle:v,activeEvents}));
+}
+
+function renderFuelGrades(v){
+ fuelGrades.innerHTML=Object.entries(fuelBase).map(([k,f])=>{
+   const survival=Math.round((f.strength+f.stability+(100-f.evap))/3);
+   return `<div class="routeCard ${k===v.fuel?'best':''}"><b>${k} Fuel</b><br><span class="badge">Strength ${f.strength}</span><span class="badge">Evap ${f.evap}%</span><span class="badge">Survival ${survival}</span></div>`;
+ }).join("");
+}
+function renderRoutes(v,eventLoss,survival){
+ if(!activeEvents.length){routes.innerHTML=`<div class="routeCard"><b>No route change yet</b><p class="small">Run world intelligence scan to place roadworks on the map.</p></div>`;return}
+ const all=activeEvents.flatMap(e=>e.routes.map(r=>({...r,from:e.title}))).sort((a,b)=>b.save-a.save);
+ routes.innerHTML=all.slice(0,4).map((r,i)=>`<div class="routeCard ${i===0?'best':''}"><b>${r.name} — ${r.type}</b><br><span class="badge">From: ${r.from}</span><span class="badge">Fuel saved ${money(r.save)}</span><p class="small">${r.why}</p></div>`).join("");
+}
+function renderMap(){
+ const map=document.getElementById("routeMap");
+ [...map.querySelectorAll(".marker")].forEach(x=>x.remove());
+ activeEvents.forEach((e,i)=>{
+   const y=90+(e.day/365)*760;
+   const div=document.createElement("div");
+   div.className=`marker ${i%2?"right":"left"} ${e.type}`;
+   div.style.top=Math.max(8,Math.min(84,(y/980)*100))+"%";
+   div.innerHTML=`<h3>${e.icon} ${e.title}</h3>
+   <span class="badge">${e.kind}</span>
+   <span class="badge">${e.day} days ahead</span><br>
+   <span class="small">Fuel loss: ${money(e.fuelLoss)}/month · Probability ${e.prob}% · Severity ${e.severity}</span><br>
+   <span class="sourcePill">${e.source}</span>`;
+   div.onclick=()=>showDetails(e);
+   map.appendChild(div);
+ });
+ if(activeEvents.length){
+   const best=activeEvents.flatMap(e=>e.routes.map(r=>({...r,event:e}))).sort((a,b)=>b.save-a.save)[0];
+   const recalc=document.createElement("div");
+   recalc.className="marker right recalc";
+   recalc.style.top="84%";
+   recalc.innerHTML=`<h3>🔁 Route Recalculation</h3><span class="badge">${best.name}: ${best.type}</span><br><span class="small">Fuel preserved: ${money(best.save)} · From ${best.event.title}</span>`;
+   recalc.onclick=()=>showRecalc(best);
+   map.appendChild(recalc);
+ }
+}
+function showDetails(e){
+ details.style.display="block";
+ detailsBody.innerHTML=`
+ <h2>${e.icon} ${e.title}</h2>
+ <p><b>1. What happened?</b><br>${e.title} discovered from ${e.source}.</p>
+ <p><b>2. Why does it affect my fuel?</b><br>${e.chain.join(" → ")}</p>
+ <p><b>3. How much fuel will I lose?</b><br>${money(e.fuelLoss)}/month · ${money(e.purchasingPowerLoss)}/year · ${e.fuelEvaporationPct}% extra evaporation against your current fuel tank.</p>
+ <p><b>4. Who crashed into this before?</b></p>
+ <ul>${e.crashMatches.map(c=>`<li>${c.name} — PP loss ${c.loss}% — Recovery ${c.recovery} — Severity ${c.severity}<br><span class="small">${c.outcome}</span></li>`).join("")||"<li>No close crash match</li>"}</ul>
+ <p><b>5. What happens if I do nothing?</b><br>${e.doNothing}</p>
+ <p><b>6. Which route avoids it?</b><br>${e.bestRoute.name} — ${e.bestRoute.type}</p>
+ <p><b>7. How much fuel does that route save?</b><br>${money(e.bestRoute.save)}</p>
+ <h3>All Route Options</h3>
+ <ul>${e.routes.map(r=>`<li>${r.name}: ${r.type} — saves ${money(r.save)} — ${r.why}</li>`).join("")}</ul>`;
+ log("[SELECT] "+e.title+" opened");
+}
+function showRecalc(best){
+ details.style.display="block";
+ detailsBody.innerHTML=`<h2>🔁 Route Recalculation</h2><p><b>Best current route:</b> ${best.name} — ${best.type}</p><p><b>Trigger:</b> ${best.event.title}</p><p><b>Fuel saved:</b> ${money(best.save)}</p><p>${best.why}</p>`;
+}
+function hideDetails(){details.style.display="none"}
+function log(t){console.innerHTML+=t+"<br>";console.scrollTop=console.scrollHeight}
+function clearDiscoveredEvents(){activeEvents=[];log("[RESET] Discovered route events cleared");recalculate();}
+async function runWorldScan(force){
+ log("[SCAN] Running world intelligence scan");
+ await IntelligencePipeline.run();
+}
+function hash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return "evt-"+Math.abs(h)}
+function boot(){
+ log("[BOOT] Vehicle profile loaded");
+ log("[MODE] Single-file build · live feeds attempted · fallback intelligence enabled");
+ const saved=localStorage.getItem("FinancialSatNavRouteIntelligenceV3");
+ if(saved){
+   try{
+     const s=JSON.parse(saved);
+     if(Array.isArray(s.activeEvents)){activeEvents=s.activeEvents;log("[RESTORE] Previous discovered route events restored")}
+   }catch(e){}
+ }
+ recalculate();
+ runWorldScan(false);
+}
+boot();
+</script>
+</body>
+</html>
