@@ -57,9 +57,9 @@ button.alt{background:#0e1626;color:var(--cyan)}
 .kpi div{background:#08101d;border:1px solid #203a56;border-radius:10px;padding:8px}
 .sourcePill{display:inline-block;font-size:10px;border:1px solid #365a7e;border-radius:999px;padding:2px 6px;color:#b8d8ff;margin:2px}
 
-.pinMode .marker{width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;font-size:21px;max-width:none}
-.pinMode .marker h3,.pinMode .marker .badge,.pinMode .marker .small,.pinMode .marker .sourcePill{display:none}
-.pinMode .marker:before{width:clamp(18px,5vw,36px);top:20px}
+.marker{width:44px;height:44px;border-radius:50%;padding:0!important;display:flex;align-items:center;justify-content:center;font-size:21px;max-width:none!important}
+.marker h3,.marker .badge,.marker .small,.marker .sourcePill{display:none}
+.marker:before{width:clamp(18px,5vw,36px);top:20px}
 .pinMode .marker.left{right:calc(50% + clamp(18px,5vw,36px))}
 .pinMode .marker.right{left:calc(50% + clamp(18px,5vw,36px))}
 .pinMode .marker.left:before{right:calc(clamp(18px,5vw,36px) * -1)}
@@ -345,47 +345,50 @@ function renderRoutes(v,eventLoss,survival){
 function renderMap(){
  const map=document.getElementById("routeMap");
  [...map.querySelectorAll(".marker")].forEach(x=>x.remove());
+
  const sorted=[...activeEvents].sort((a,b)=>a.day-b.day);
- const compact=map.clientWidth<720;
- map.classList.toggle("pinMode",compact);
  const laneLast={left:-999,right:-999};
+
  sorted.forEach((e,i)=>{
    const lane=i%2?"right":"left";
    let topPct=9+(Math.min(365,Math.max(0,e.day))/365)*76;
-   const minGap=compact?6:10;
-   if(topPct-laneLast[lane]<minGap) topPct=laneLast[lane]+minGap;
-   topPct=Math.min(compact?86:82,topPct);
+
+   if(topPct-laneLast[lane]<6) topPct=laneLast[lane]+6;
+   topPct=Math.min(86,topPct);
    laneLast[lane]=topPct;
+
    const div=document.createElement("div");
    div.className=`marker ${lane} ${e.type}`;
    div.style.top=topPct+"%";
+   div.title=e.title;
    div.setAttribute("role","button");
    div.setAttribute("tabindex","0");
-   div.setAttribute("aria-label",`${e.title}. Fuel loss ${money(e.fuelLoss)} per month.`);
-   div.innerHTML=compact
-    ? `${e.icon}`
-    : `<h3>${e.icon} ${e.title}</h3>
-   <span class="badge">${e.kind}</span>
-   <span class="badge">${e.day} days ahead</span><br>
-   <span class="small">Fuel loss: ${money(e.fuelLoss)}/month · Probability ${e.prob}% · Severity ${e.severity}</span><br>
-   <span class="sourcePill">${e.source}</span>`;
+
+   div.innerHTML=e.icon;
+
    div.onclick=()=>showDetails(e);
-   div.onkeydown=(ev)=>{if(ev.key==="Enter"||ev.key===" ")showDetails(e)};
+   div.onkeydown=(ev)=>{
+      if(ev.key==="Enter"||ev.key===" "){
+         showDetails(e);
+      }
+   };
+
    map.appendChild(div);
  });
+
  if(activeEvents.length){
-   const best=activeEvents.flatMap(e=>e.routes.map(r=>({...r,event:e}))).sort((a,b)=>b.save-a.save)[0];
+   const best=activeEvents
+      .flatMap(e=>e.routes.map(r=>({...r,event:e})))
+      .sort((a,b)=>b.save-a.save)[0];
+
    const recalc=document.createElement("div");
    recalc.className="marker right recalc";
-   recalc.style.top=compact?"91%":"88%";
-   recalc.setAttribute("role","button");
-   recalc.setAttribute("tabindex","0");
-   recalc.setAttribute("aria-label",`Route Recalculation. ${best.name} ${best.type}.`);
-   recalc.innerHTML=compact
-    ? `🔁`
-    : `<h3>🔁 Route Recalculation</h3><span class="badge">${best.name}: ${best.type}</span><br><span class="small">Fuel preserved: ${money(best.save)} · From ${best.event.title}</span>`;
+   recalc.style.top="92%";
+   recalc.innerHTML="🔁";
+   recalc.title="Route Recalculation";
+
    recalc.onclick=()=>showRecalc(best);
-   recalc.onkeydown=(ev)=>{if(ev.key==="Enter"||ev.key===" ")showRecalc(best)};
+
    map.appendChild(recalc);
  }
 }
