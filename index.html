@@ -3,624 +3,110 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Financial SatNav™ Neo v1.3 — Working Machine</title>
+<title>Financial SatNav™ Live Collision Discovery</title>
 <style>
-:root{
---bg:#05060a;--panel:#0d1220;--panel2:#08101d;
---cyan:#00e5ff;--green:#39ff88;--yellow:#ffe600;--red:#ff295f;--purple:#b026ff;
---muted:#95a8c7;--white:#f5fbff;--line:rgba(0,229,255,.3);
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
-margin:0;color:white;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;
-background:
-radial-gradient(circle at 20% 0%,rgba(0,229,255,.15),transparent 30%),
-radial-gradient(circle at 80% 0%,rgba(57,255,136,.12),transparent 25%),
-radial-gradient(circle at 55% 95%,rgba(255,41,95,.10),transparent 32%),
-#05060a;
-min-height:100vh;padding-bottom:74px;
-}
-body::before{
-content:"";position:fixed;inset:0;
-background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0px,rgba(255,255,255,.025) 1px,transparent 2px,transparent 5px);
-pointer-events:none;z-index:20;mix-blend-mode:screen;
-}
-header{
-position:sticky;top:0;z-index:10;padding:16px 14px;
-border-bottom:1px solid rgba(0,229,255,.3);
-box-shadow:0 0 20px rgba(0,229,255,.3);
-background:rgba(5,6,10,.82);backdrop-filter:blur(14px);
-}
-h1{margin:0;color:var(--yellow);text-shadow:0 0 12px var(--yellow);font-size:clamp(22px,5vw,38px);letter-spacing:.06em}
+:root{--bg:#05060a;--panel:#0d1220;--cyan:#00e5ff;--green:#39ff88;--yellow:#ffe600;--red:#ff295f;--purple:#b026ff;--muted:#95a8c7;--line:rgba(0,229,255,.3)}
+*{box-sizing:border-box}body{margin:0;color:white;font-family:Inter,system-ui,Arial;background:radial-gradient(circle at 20% 0%,rgba(0,229,255,.15),transparent 30%),radial-gradient(circle at 80% 0%,rgba(57,255,136,.12),transparent 25%),#05060a;min-height:100vh}
+header{position:sticky;top:0;z-index:2;padding:16px;border-bottom:1px solid var(--line);background:rgba(5,6,10,.86);backdrop-filter:blur(12px)}
+h1{margin:0;color:var(--yellow);text-shadow:0 0 12px var(--yellow);font-size:clamp(22px,5vw,38px)}
 .sub{color:var(--muted);font-size:13px;margin-top:6px}
 .grid{display:grid;grid-template-columns:1fr;gap:12px;padding:12px;max-width:1500px;margin:auto}
-.panel{
-background:rgba(13,18,32,.8);
-border:1px solid rgba(0,229,255,.25);
-border-radius:18px;padding:14px;backdrop-filter:blur(10px);
-box-shadow:0 0 30px rgba(0,229,255,.08);
-}
-.panel h2,.panel h3{margin:.1rem 0 .8rem;color:var(--cyan);text-shadow:0 0 12px rgba(0,229,255,.45)}
-.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.metric{
-padding:12px;border-radius:14px;background:#0f1628;
-border:1px solid rgba(255,230,0,.2);animation:pulse 3s infinite;min-height:92px;
-}
-.metric span{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
-.metric b{display:block;font-size:clamp(22px,6vw,34px);color:var(--cyan);margin-top:5px;word-break:break-word}
-.metric.red b{color:var(--red)}.metric.green b{color:var(--green)}.metric.yellow b{color:var(--yellow)}
-button,input,select,textarea{
-width:100%;padding:10px;border-radius:12px;background:#0e1626;color:white;
-border:1px solid rgba(0,229,255,.3);outline:none;
-}
-input,select,textarea{margin-bottom:8px}
-label{display:block;color:var(--muted);font-size:12px;margin:8px 0 3px}
-button{
-background:linear-gradient(90deg,var(--cyan),var(--green));color:black;font-weight:900;cursor:pointer;
-box-shadow:0 0 18px rgba(0,229,255,.18);margin:4px 0;
-}
-button.secondary{background:#0e1626;color:var(--cyan);border:1px solid rgba(0,229,255,.45)}
-button.danger{background:linear-gradient(90deg,var(--red),#ff7a18);color:#160007}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.item{
-border:1px solid rgba(0,229,255,.22);background:rgba(8,16,29,.86);
-border-radius:14px;padding:10px;margin:8px 0;box-shadow:0 0 16px rgba(0,229,255,.05)
-}
-.itemTop{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
-.badge{display:inline-block;border:1px solid rgba(255,230,0,.35);border-radius:999px;padding:3px 8px;color:var(--yellow);font-size:11px;margin:2px}
-.timeline{
-height:300px;border-radius:16px;position:relative;overflow:auto;background:#08101d;
-border:1px solid rgba(0,229,255,.22);box-shadow:inset 0 0 30px rgba(0,229,255,.06);
-}
-.line{
-position:absolute;left:30px;top:150px;width:5200px;height:4px;
-background:linear-gradient(90deg,var(--cyan),var(--green),var(--yellow),var(--red));
-box-shadow:0 0 20px var(--cyan);
-}
-.event{
-position:absolute;top:150px;transform:translateY(-50%);padding:8px 12px;border-radius:999px;
-background:#111c33;border:1px solid var(--cyan);box-shadow:0 0 15px var(--cyan);
-white-space:nowrap;font-size:12px;transition:.2s;
-}
-.event.neg{border-color:var(--red);box-shadow:0 0 15px var(--red)}
-.event.pos{border-color:var(--green);box-shadow:0 0 15px var(--green)}
-.event.emergency{border-color:var(--yellow);box-shadow:0 0 15px var(--yellow)}
-.event.active{transform:translateY(-50%) scale(1.18);z-index:2;background:#1b2d4d}
-.playhead{position:absolute;top:20px;height:240px;width:3px;background:var(--yellow);box-shadow:0 0 18px var(--yellow);left:30px}
-canvas{width:100%;height:260px;background:#08101d;border:1px solid rgba(0,229,255,.22);border-radius:16px}
-.route{min-height:150px;border:1px dashed rgba(255,230,0,.45);border-radius:16px;padding:8px;background:rgba(8,16,29,.7)}
-.routeItem{padding:9px;margin:7px 0;border:1px solid rgba(0,229,255,.35);border-radius:12px;cursor:move;background:#101a2f}
-.routeItem.dragging{opacity:.45}.routeItem.dropTarget{outline:2px dashed var(--yellow)}
-pre{white-space:pre-wrap;color:#dbeafe;line-height:1.45;max-height:520px;overflow:auto}
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
-.tab{font-size:12px}
-.section{display:none}.section.active{display:block}
-.notice{border:1px solid rgba(255,230,0,.35);background:rgba(255,230,0,.08);border-radius:14px;padding:10px;color:#fff7b0;margin:8px 0}
-footer{
-position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:space-around;gap:4px;
-padding:9px max(8px,env(safe-area-inset-right)) calc(9px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
-background:#070d18;border-top:1px solid rgba(0,229,255,.25);box-shadow:0 0 20px rgba(0,229,255,.25)
-}
-.navbtn{color:var(--cyan);font-weight:800;font-size:12px;text-align:center;padding:7px;border-radius:10px;min-width:58px}
-.navbtn.active{color:black;background:linear-gradient(90deg,var(--yellow),var(--green));box-shadow:0 0 14px rgba(255,230,0,.35)}
-@keyframes pulse{50%{box-shadow:0 0 18px rgba(255,230,0,.35)}}
-@media(min-width:900px){
-body{padding-bottom:0}
-.grid{grid-template-columns:395px 1fr}
-.metrics{grid-template-columns:repeat(4,1fr)}
-footer{display:none}
-}
-@media(max-width:520px){
-.row,.row3{grid-template-columns:1fr}
-.tabs{grid-template-columns:repeat(2,1fr)}
-.metric{min-height:82px}
-}
-@media print{
-body{background:white;color:black;padding:0} header,footer,.controls,.tabs,button,input,select,textarea{display:none!important}
-.panel{box-shadow:none;border:1px solid #999;background:white;color:black}.section{display:block!important}
-pre{color:black;max-height:none}.metrics{display:grid}
-}
+.panel{background:rgba(13,18,32,.82);border:1px solid rgba(0,229,255,.25);border-radius:18px;padding:14px;box-shadow:0 0 28px rgba(0,229,255,.08)}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.metric{padding:12px;border-radius:14px;background:#0f1628;border:1px solid rgba(255,230,0,.2);min-height:90px}.metric span{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.metric b{display:block;font-size:clamp(22px,5vw,32px);color:var(--cyan);margin-top:5px}
+button,input{width:100%;padding:10px;border-radius:12px;background:#0e1626;color:white;border:1px solid rgba(0,229,255,.3);outline:none;margin:4px 0}button{background:linear-gradient(90deg,var(--cyan),var(--green));color:#031018;font-weight:900;cursor:pointer}.secondary{background:#0e1626;color:var(--cyan)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.badge{display:inline-block;border:1px solid rgba(255,230,0,.35);border-radius:999px;padding:3px 8px;color:var(--yellow);font-size:11px;margin:2px}
+.card{border:1px solid rgba(0,229,255,.25);border-radius:14px;background:#08101d;padding:12px;margin:10px 0}.card.high{border-color:var(--red);box-shadow:0 0 14px rgba(255,41,95,.22)}.card.medium{border-color:var(--yellow)}.card.low{border-color:var(--green)}
+pre{white-space:pre-wrap;color:#dbeafe;line-height:1.45;max-height:420px;overflow:auto}
+.timeline{height:280px;border-radius:16px;position:relative;overflow:auto;background:#08101d;border:1px solid rgba(0,229,255,.22)}
+.line{position:absolute;left:30px;top:140px;width:7600px;height:4px;background:linear-gradient(90deg,var(--cyan),var(--green),var(--yellow),var(--red));box-shadow:0 0 20px var(--cyan)}
+.event{position:absolute;top:140px;transform:translateY(-50%);padding:8px 12px;border-radius:999px;background:#111c33;border:1px solid var(--yellow);box-shadow:0 0 15px var(--yellow);white-space:nowrap;font-size:12px}
+canvas{width:100%;height:275px;background:#08101d;border:1px solid rgba(0,229,255,.22);border-radius:16px}
+@media(min-width:900px){.grid{grid-template-columns:390px 1fr}.metrics{grid-template-columns:repeat(4,1fr)}}@media(max-width:520px){.row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header>
-<h1>FINANCIAL SATNAV™ NEO v1.3</h1>
-<div class="sub">Working machine: stronger drag/drop, custom report export, local mechanic diagnosis, CSV bank import, category inflation engine.</div>
-</header>
-
+<header><h1>FINANCIAL SATNAV™ LIVE DISCOVERY</h1><div class="sub">World Event Discovery → Event Classification → Collision Objects → Route Engine</div></header>
 <div class="grid">
-<aside class="panel controls" id="setup">
-<h2>Route Setup</h2>
-<label>Starting Balance</label><input id="startingBalance" type="number" step="0.01">
-<div class="row">
-<div><label>Start Date</label><input id="startDate" type="date"></div>
-<div><label>Forecast Months</label><input id="months" type="number" min="1" max="36"></div>
-</div>
-<button onclick="App.forecast()">RUN FORECAST</button>
-<button class="secondary" onclick="App.seedDemo()">LOAD DEMO</button>
-<button class="danger" onclick="App.reset()">RESET</button>
-
-<div class="tabs">
-<button class="tab" onclick="App.showEditor('income')">Income</button>
-<button class="tab" onclick="App.showEditor('expense')">Bills</button>
-<button class="tab" onclick="App.showEditor('emergency')">Emergency</button>
-<button class="tab" onclick="App.showEditor('data')">Data</button>
-</div>
-
-<div id="incomeEditor" class="section active">
-<h3>Add Income</h3>
-<label>Name</label><input id="incomeName" placeholder="Salary">
-<label>Amount</label><input id="incomeAmount" type="number" step="0.01" placeholder="2500">
-<div class="row"><div><label>Frequency</label><select id="incomeRule"><option>monthly</option><option>weekly</option><option>daily</option><option>yearly</option><option>once</option></select></div><div><label>Day</label><input id="incomeDay" type="number" min="1" max="31" value="1"></div></div>
-<label>Category</label><select id="incomeCategory"><option>Salary</option><option>Side Business</option><option>Benefits</option><option>Rental Income</option><option>Dividends</option><option>Cash Gifts</option><option>Other</option></select>
-<button onclick="App.addIncome()">ADD INCOME</button>
-<div id="incomeList"></div>
-</div>
-
-<div id="expenseEditor" class="section">
-<h3>Add Bill / Expense</h3>
-<label>Name</label><input id="expenseName" placeholder="Rent">
-<label>Amount</label><input id="expenseAmount" type="number" step="0.01" placeholder="950">
-<div class="row"><div><label>Frequency</label><select id="expenseRule"><option>monthly</option><option>weekly</option><option>daily</option><option>yearly</option><option>once</option></select></div><div><label>Day</label><input id="expenseDay" type="number" min="1" max="31" value="1"></div></div>
-<div class="row"><div><label>Priority</label><select id="expensePriority"><option>Critical</option><option>Important</option><option>Optional</option></select></div><div><label>Category</label><select id="expenseCategory"><option>Housing</option><option>Food</option><option>Transport</option><option>Utilities</option><option>Insurance</option><option>Debt</option><option>Subscriptions</option><option>Other</option></select></div></div>
-<button onclick="App.addExpense()">ADD BILL</button>
-<div id="expenseList"></div>
-</div>
-
-<div id="emergencyEditor" class="section">
-<h3>Add Emergency Event</h3>
-<label>Name</label><input id="emergencyName" placeholder="Car repair">
-<label>Cost</label><input id="emergencyAmount" type="number" step="0.01" placeholder="600">
-<label>Date</label><input id="emergencyDate" type="date">
-<button onclick="App.addEmergency()">ADD EMERGENCY</button>
-<div id="emergencyList"></div>
-</div>
-
-<div id="dataEditor" class="section">
-<h3>Data Engines</h3>
-<div class="notice">Bank import is local CSV parsing only. No bank connection or data leaves this browser.</div>
-<label>Import bank CSV</label>
-<input id="csvFile" type="file" accept=".csv,text/csv" onchange="App.importCSV(this.files[0])">
-<label>CSV mode</label><select id="csvMode"><option value="emergency">Import as one-off route events</option><option value="expenses">Import negative values as expenses</option><option value="income">Import positive values as income</option></select>
-<button class="secondary" onclick="App.showCSVHelp()">CSV HELP</button>
-
-<h3>Inflation Engine</h3>
-<div class="row">
-<div><label>Food %</label><input id="infFood" type="number" step="0.1"></div>
-<div><label>Utilities %</label><input id="infUtilities" type="number" step="0.1"></div>
-</div>
-<div class="row">
-<div><label>Housing %</label><input id="infHousing" type="number" step="0.1"></div>
-<div><label>Transport %</label><input id="infTransport" type="number" step="0.1"></div>
-</div>
-<div class="row">
-<div><label>Insurance %</label><input id="infInsurance" type="number" step="0.1"></div>
-<div><label>Other %</label><input id="infOther" type="number" step="0.1"></div>
-</div>
-<button onclick="App.applyInflation()">APPLY INFLATION TO BILLS</button>
-
-<h3>Scenarios</h3>
-<button onclick="App.setScenario('normal')">Current Plan</button>
-<button onclick="App.setScenario('best')">Best Case +10% income</button>
-<button onclick="App.setScenario('worst')">Worst Case +15% bills</button>
-<button onclick="App.setScenario('emergency')">Emergency Stress</button>
-</div>
-</aside>
-
-<main>
-<section class="metrics" id="dashboard">
-<div class="metric" id="netBox"><span>Net Position</span><b id="netMetric">£0</b></div>
-<div class="metric" id="runwayBox"><span>Runway</span><b id="runwayMetric">0d</b></div>
-<div class="metric" id="riskBox"><span>Risk</span><b id="riskMetric">-</b></div>
-<div class="metric" id="survivalBox"><span>Survival</span><b id="survivalMetric">0%</b></div>
-</section>
-
-<section class="panel" id="timelinePanel">
-<h2>Animated Timeline</h2>
-<div class="row controls">
-<button onclick="App.play()">PLAY</button>
-<button class="secondary" onclick="App.pause()">PAUSE</button>
-</div>
-<div class="row controls">
-<div><label>Scrub</label><input id="scrub" type="range" min="0" max="0" value="0" oninput="App.scrub(+this.value)"></div>
-<div><label>Speed</label><select id="speed" onchange="App.setSpeed(+this.value)"><option value="1200">1x</option><option value="650">2x</option><option value="300">4x</option></select></div>
-</div>
-<div class="timeline" id="timeline"><div class="line"></div><div class="playhead" id="playhead"></div></div>
-</section>
-
-<section class="panel" id="planner">
-<h2>Drag / Drop Route Planner</h2>
-<div class="sub">Drag any same-date route stop to reorder it. Drag optional bills up/down to store a planning order. Forecast uses that order when dates match.</div>
-<div id="route" class="route"></div>
-</section>
-
-<section class="panel" id="mechanic">
-<h2>Financial Mechanic Diagnosis</h2>
-<button onclick="App.mechanicReport()">WHY DID MY FUEL VANISH?</button>
-<pre id="mechanicOut"></pre>
-</section>
-
-<section class="panel" id="graphPanel">
-<h2>Balance Forecast Graph</h2>
-<canvas id="chart" width="900" height="300"></canvas>
-</section>
-
-<section class="panel" id="reports">
-<h2>Report</h2>
-<div class="row controls"><button onclick="App.buildReport()">BUILD REPORT</button><button class="secondary" onclick="App.exportReportHTML()">CUSTOM REPORT EXPORT</button></div>
-<pre id="report"></pre>
-
-<section class="panel" id="assetRadarPanel">
-<h2>Asset Radar</h2>
-<button onclick="App.loadAssetRadar()">LOAD LIVE CRYPTO RADAR</button>
-<div id="assetRadar" style="margin-top:10px"></div>
-</section>
-
+<aside>
 <section class="panel">
-<h2>QA Audit</h2>
-<button onclick="App.qa()">RUN QA</button>
-<pre id="qa"></pre>
+<h2>Vehicle Exposure</h2>
+<label>Starting reserve</label><input id="reserve" type="number" value="1500">
+<label>Monthly income</label><input id="income" type="number" value="2500">
+<div class="row"><div><label>Food</label><input id="Food" value="520" type="number"></div><div><label>Utilities</label><input id="Utilities" value="210" type="number"></div></div>
+<div class="row"><div><label>Housing</label><input id="Housing" value="950" type="number"></div><div><label>Transport</label><input id="Transport" value="220" type="number"></div></div>
+<div class="row"><div><label>Debt</label><input id="Debt" value="120" type="number"></div><div><label>Insurance</label><input id="Insurance" value="95" type="number"></div></div>
+<div class="row"><div><label>Subscriptions</label><input id="Subscriptions" value="45" type="number"></div><div><label>Other</label><input id="Other" value="180" type="number"></div></div>
+<button onclick="App.discover(true)">DISCOVER LIVE COLLISIONS</button>
+<button class="secondary" onclick="App.discover(false)">USE CACHE</button>
 </section>
+<section class="panel"><h2>Sources</h2><div id="sources"></div></section>
+</aside>
+<main>
+<section class="metrics">
+<div class="metric"><span>Detected</span><b id="detected">0</b></div>
+<div class="metric"><span>High Risk</span><b id="highRisk">0</b></div>
+<div class="metric"><span>Survival</span><b id="survival">0%</b></div>
+<div class="metric"><span>Power Loss</span><b id="powerLoss">£0</b></div>
+</section>
+<section class="panel"><h2>Detected Collision Objects</h2><div id="collisions"></div></section>
+<section class="panel"><h2>Timeline Collision Markers</h2><div class="timeline" id="timeline"><div class="line"></div></div></section>
+<section class="panel"><h2>Purchasing Power Impact</h2><canvas id="chart" width="900" height="300"></canvas></section>
+<section class="panel"><h2>Collision Report</h2><pre id="report"></pre></section>
 </main>
 </div>
-
-<footer>
-<div class="navbtn active" onclick="App.jump('dashboard',this)">Balance</div>
-<div class="navbtn" onclick="App.jump('timelinePanel',this)">Timeline</div>
-<div class="navbtn" onclick="App.jump('planner',this)">Planner</div>
-<div class="navbtn" onclick="App.jump('reports',this)">Reports</div>
-</footer>
-
 <script>
-function SatNavUID(){
-  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,10);
-}
-function SatNavISO(d){
-  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-}
-function SatNavParseISO(s){
-  const [y,m,d]=String(s).split("-").map(Number);
-  return new Date(y,(m||1)-1,d||1);
-}
-function SatNavCSVLine(line){
- const out=[];let cur="",q=false;
- for(let i=0;i<line.length;i++){
-  const ch=line[i],n=line[i+1];
-  if(ch=='"'&&q&&n=='"'){cur+='"';i++}
-  else if(ch=='"'){q=!q}
-  else if(ch==","&&!q){out.push(cur.trim());cur=""}
-  else cur+=ch;
- }
- out.push(cur.trim());return out;
-}
 const App={
-state:{
-startingBalance:500,startDate:SatNavISO(new Date()),months:3,scenario:"normal",
-income:[{id:SatNavUID(),name:"Salary",amount:2500,rule:"monthly",day:25,category:"Salary"}],
-expenses:[
-{id:SatNavUID(),name:"Rent",amount:950,rule:"monthly",day:1,priority:"Critical",category:"Housing"},
-{id:SatNavUID(),name:"Food",amount:125,rule:"weekly",day:5,priority:"Critical",category:"Food"},
-{id:SatNavUID(),name:"Subscriptions",amount:45,rule:"monthly",day:15,priority:"Optional",category:"Subscriptions"}
-],
-emergencies:[{id:SatNavUID(),name:"Car Repair",amount:600,date:SatNavISO(new Date(Date.now()+1000*60*60*24*36))}],
-inflation:{Food:8,Utilities:10,Housing:5,Transport:7,Insurance:12,Other:4,Subscriptions:4,Debt:0},
-schedule:[],balances:[],playhead:0,timer:null,speed:1200,routeOrder:[]
+state:{collisions:[],historical:[],sources:[],timeline:[],routes:[]},
+money(n){return"£"+Number(n||0).toLocaleString("en-GB",{minimumFractionDigits:2,maximumFractionDigits:2})},
+exposure(){return{Food:+Food.value||0,Utilities:+Utilities.value||0,Housing:+Housing.value||0,Transport:+Transport.value||0,Debt:+Debt.value||0,Insurance:+Insurance.value||0,Subscriptions:+Subscriptions.value||0,Other:+Other.value||0}},
+async discover(force){
+detected.textContent="...";collisions.innerHTML="<div class='card'>Fetching live sources through backend acquisition layer...</div>";
+const res=await fetch(`/api/collisions/discover${force?"?force=1":""}`);
+const data=await res.json();
+if(data.error){collisions.innerHTML=`<div class='card high'>${data.error}</div>`;return}
+this.state.collisions=data.collisions||[];this.state.historical=data.historical||[];this.state.sources=data.sources||[];
+this.simulate();this.render();
 },
-money(n){return "£"+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})},
-save(){try{localStorage.setItem("financialSatnavNeoWorking",JSON.stringify(this.state))}catch(e){console.warn("Storage unavailable",e)}},
-load(){try{const s=JSON.parse(localStorage.getItem("financialSatnavNeoWorking"));if(s)this.state={...this.state,...s,inflation:{...this.state.inflation,...(s.inflation||{})}}}catch(e){console.warn("Storage load skipped",e)}},
-syncInputs(){
-startingBalance.value=this.state.startingBalance;startDate.value=this.state.startDate;months.value=this.state.months;speed.value=this.state.speed;
-infFood.value=this.state.inflation.Food||0;infUtilities.value=this.state.inflation.Utilities||0;infHousing.value=this.state.inflation.Housing||0;infTransport.value=this.state.inflation.Transport||0;infInsurance.value=this.state.inflation.Insurance||0;infOther.value=this.state.inflation.Other||0;
+impact(c){const ex=this.exposure();return c.affectedCategories.reduce((s,k)=>s+(ex[k]||0)*(c.impactPct/100)*(c.probability/100),0)},
+simulate(){
+const ex=this.exposure(), base=Object.values(ex).reduce((s,v)=>s+v,0), monthlyIncome=+income.value||0;
+let reserveVal=+reserve.value||0;const start=new Date();const timeline=[];
+for(let m=0;m<12;m++){const d=new Date(start);d.setMonth(d.getMonth()+m);reserveVal+=monthlyIncome-base;timeline.push({type:"route",date:d,label:"Monthly route check",amount:monthlyIncome-base,reserve:reserveVal})}
+this.state.collisions.forEach(c=>{const d=new Date(start);d.setDate(d.getDate()+(c.windowDays||90));const loss=this.impact(c);reserveVal-=loss;timeline.push({type:"collision",date:d,label:c.event,amount:-loss,reserve:reserveVal,collision:c})});
+timeline.sort((a,b)=>a.date-b.date);let running=+reserve.value||0;timeline.forEach(t=>{running+=t.amount;t.reserve=running});this.state.timeline=timeline;
 },
-readInputs(){
-this.state.startingBalance=+startingBalance.value||0;this.state.startDate=startDate.value||SatNavISO(new Date());this.state.months=+months.value||3;
-this.state.inflation.Food=+infFood.value||0;this.state.inflation.Utilities=+infUtilities.value||0;this.state.inflation.Housing=+infHousing.value||0;this.state.inflation.Transport=+infTransport.value||0;this.state.inflation.Insurance=+infInsurance.value||0;this.state.inflation.Other=+infOther.value||0;
+render(){
+const high=this.state.collisions.filter(c=>c.severity>=70||c.probability>=70).length;
+const totalLoss=this.state.collisions.reduce((s,c)=>s+this.impact(c)*12,0);
+const end=this.state.timeline.at(-1)?.reserve||0;const survival=Math.round(Math.max(1,Math.min(99,70+(end/50)-(totalLoss/180))));
+detected.textContent=this.state.collisions.length;highRisk.textContent=high;survival.textContent=survival+"%";powerLoss.textContent=this.money(totalLoss);
+sources.innerHTML=this.state.sources.map(s=>`<div class="card ${s.ok?'low':'high'}"><b>${s.name}</b><br><span class="badge">${s.type}</span><span class="badge">${s.ok?'OK':'FAIL '+s.status}</span><br><small>${s.url}</small></div>`).join("");
+collisions.innerHTML=this.state.collisions.map(c=>`<div class="card ${c.severity>=75?'high':c.severity>=55?'medium':'low'}"><h3>⚠ ${c.event}</h3><span class="badge">${c.source}</span><span class="badge">Severity ${c.severity}</span><span class="badge">Probability ${c.probability}%</span><span class="badge">Validation ${Math.round((c.validationScore||0)*100)}%</span><p>${c.description}</p><b>Impact:</b> ${this.money(this.impact(c))}/month<br><b>Affected:</b> ${c.affectedCategories.join(", ")}<details><summary>Evidence</summary>${(c.evidence||[]).map(e=>`<p><b>${e.sourceName}</b><br>${e.title}<br><small>${e.url}</small><br>${e.snippet}</p>`).join("")}</details></div>`).join("")||"<div class='card high'>No live collisions discovered from available sources.</div>";
+this.renderTimeline();this.drawChart();this.report();
 },
-showEditor(name){
-["income","expense","emergency","data"].forEach(x=>document.getElementById(x+"Editor").classList.toggle("active",x===name));
-},
-addIncome(){
-this.state.income.push({id:SatNavUID(),name:incomeName.value||"Income",amount:+incomeAmount.value||0,rule:incomeRule.value,day:+incomeDay.value||1,category:incomeCategory.value});
-incomeName.value="";incomeAmount.value="";this.save();this.renderLists();this.forecast();
-},
-addExpense(){
-this.state.expenses.push({id:SatNavUID(),name:expenseName.value||"Expense",amount:+expenseAmount.value||0,rule:expenseRule.value,day:+expenseDay.value||1,priority:expensePriority.value,category:expenseCategory.value});
-expenseName.value="";expenseAmount.value="";this.save();this.renderLists();this.forecast();
-},
-addEmergency(){
-this.state.emergencies.push({id:SatNavUID(),name:emergencyName.value||"Emergency",amount:+emergencyAmount.value||0,date:emergencyDate.value||this.state.startDate});
-emergencyName.value="";emergencyAmount.value="";this.save();this.renderLists();this.forecast();
-},
-remove(type,id){if(!Array.isArray(this.state[type]))return;this.state[type]=this.state[type].filter(x=>x.id!==id);this.state.routeOrder=this.state.routeOrder.filter(x=>x!==id);this.save();this.renderLists();this.forecast()},
-scenarioAmount(type,amount){
-if(this.state.scenario==="best"&&type==="income")return amount*1.1;
-if(this.state.scenario==="worst"&&type==="expense")return amount*1.15;
-if(this.state.scenario==="emergency"&&type==="emergency")return amount*1.5;
-return amount;
-},
-clampDay(y,m,d){return Math.min(Math.max(1,d||1),new Date(y,m+1,0).getDate())},
-advance(d,item){
- const x=new Date(d);
- if(item.rule==="daily")x.setDate(x.getDate()+1);
- else if(item.rule==="weekly")x.setDate(x.getDate()+7);
- else if(item.rule==="monthly"){x.setDate(1);x.setMonth(x.getMonth()+1);x.setDate(this.clampDay(x.getFullYear(),x.getMonth(),item.day||1))}
- else if(item.rule==="yearly"){x.setDate(1);x.setFullYear(x.getFullYear()+1);x.setDate(this.clampDay(x.getFullYear(),x.getMonth(),item.day||1))}
- else return null;
- return x;
-},
-occurrences(item,type,start,end){
-const rows=[];let d=new Date(start);
-if(item.rule==="monthly"||item.rule==="yearly"){d.setDate(this.clampDay(d.getFullYear(),d.getMonth(),item.day||1))}
-while(d<start){const nx=this.advance(d,item);if(!nx)break;d=nx}
-while(d<=end){
-rows.push({id:item.id,date:new Date(d),name:item.name,type,priority:item.priority||"",category:item.category||"Other",amount:this.scenarioAmount(type,type==="expense"?-Math.abs(item.amount):Math.abs(item.amount))});
-const nx=this.advance(d,item);if(!nx)break;d=nx;
-}
-return rows;
-},
-forecast(){
-this.readInputs();
-const start=SatNavParseISO(this.state.startDate);const end=new Date(start);end.setMonth(end.getMonth()+this.state.months);
-let rows=[];
-this.state.income.forEach(i=>rows.push(...this.occurrences(i,"income",start,end)));
-this.state.expenses.forEach(e=>rows.push(...this.occurrences(e,"expense",start,end)));
-this.state.emergencies.forEach(e=>{const d=SatNavParseISO(e.date);if(d>=start&&d<=end)rows.push({id:e.id,date:d,name:e.name,type:"emergency",amount:-Math.abs(this.scenarioAmount("emergency",e.amount)),priority:"Emergency",category:"Emergency"})});
-rows.sort((a,b)=>{
- const dt=a.date-b.date;if(dt)return dt;
- const ai=this.state.routeOrder.indexOf(a.id),bi=this.state.routeOrder.indexOf(b.id);
- if(ai!==-1||bi!==-1)return (ai===-1?999:ai)-(bi===-1?999:bi);
- return b.amount-a.amount;
-});
-let bal=this.state.startingBalance,min=bal,negative=null;
-this.state.balances=rows.map((r,i)=>{bal+=r.amount;if(bal<min)min=bal;if(bal<0&&!negative)negative=r.date;return {...r,balance:bal,index:i}});
-this.state.schedule=rows;this.save();this.renderAll(min,negative,end);
-},
-renderAll(min,negative,end){this.renderLists();this.renderMetrics(min,negative,end);this.renderTimeline();this.renderRoute();this.drawChart();this.buildReport(false);this.mechanicReport(false)},
-renderMetrics(min,negative,end){
-const last=this.state.balances.at(-1)?.balance ?? this.state.startingBalance;
-const days=Math.max(1,Math.ceil((end-SatNavParseISO(this.state.startDate))/86400000));
-const survival=negative?Math.max(0,Math.round(((negative-SatNavParseISO(this.state.startDate))/86400000)/days*100)):100;
-const dailyBurn=Math.max(1,this.state.expenses.reduce((s,e)=>s+Math.abs(e.amount),0)/30);
-const runway=Math.max(0,Math.floor(last/dailyBurn));
-let risk=negative?"CRITICAL":min<100?"HIGH":min<500?"MEDIUM":"LOW";
-netMetric.textContent=this.money(last);runwayMetric.textContent=runway+"d";riskMetric.textContent=risk;survivalMetric.textContent=survival+"%";
-riskBox.className="metric "+(risk==="LOW"?"green":risk==="MEDIUM"?"yellow":"red");
-survivalBox.className="metric "+(survival<50?"red":survival<80?"yellow":"green");
-},
-renderLists(){
-incomeList.innerHTML=this.state.income.map(x=>`<div class="item"><div class="itemTop"><b>${x.name}</b><button class="danger" onclick="App.remove('income','${x.id}')">X</button></div><span class="badge">${this.money(x.amount)}</span><span class="badge">${x.rule}</span><span class="badge">day ${x.day}</span><span class="badge">${x.category||""}</span></div>`).join("");
-expenseList.innerHTML=this.state.expenses.map(x=>`<div class="item"><div class="itemTop"><b>${x.name}</b><button class="danger" onclick="App.remove('expenses','${x.id}')">X</button></div><span class="badge">${this.money(x.amount)}</span><span class="badge">${x.rule}</span><span class="badge">${x.priority}</span><span class="badge">${x.category||"Other"}</span></div>`).join("");
-emergencyList.innerHTML=this.state.emergencies.map(x=>`<div class="item"><div class="itemTop"><b>${x.name}</b><button class="danger" onclick="App.remove('emergencies','${x.id}')">X</button></div><span class="badge">${this.money(x.amount)}</span><span class="badge">${x.date}</span></div>`).join("");
-},
-renderTimeline(){
-timeline.innerHTML='<div class="line"></div><div class="playhead" id="playhead"></div>';
-this.state.balances.forEach((e,i)=>{const div=document.createElement("div");div.className="event "+(e.type==="emergency"?"emergency":e.amount<0?"neg":"pos");div.style.left=(40+i*130)+"px";div.style.top=(i%2?195:105)+"px";div.textContent=`${e.date.toLocaleDateString()} ${e.name} ${this.money(e.amount)}`;timeline.appendChild(div)});
-scrub.max=Math.max(0,this.state.balances.length-1);scrub.value=this.state.playhead=0;this.updatePlayhead();
-},
-updatePlayhead(){
-const events=[...document.querySelectorAll(".event")];events.forEach((e,i)=>e.classList.toggle("active",i===this.state.playhead));
-const x=40+this.state.playhead*130;const ph=document.getElementById("playhead");if(ph)ph.style.left=x+"px";timeline.scrollLeft=Math.max(0,x-160);
-},
-play(){if(this.state.timer)return;this.state.timer=setInterval(()=>{if(!this.state.balances.length)return;this.state.playhead++;if(this.state.playhead>=this.state.balances.length){this.state.playhead=this.state.balances.length-1;this.pause()}scrub.value=this.state.playhead;this.updatePlayhead()},this.state.speed)},
-pause(){clearInterval(this.state.timer);this.state.timer=null},
-scrub(v){this.state.playhead=v;this.updatePlayhead()},
-setSpeed(v){this.state.speed=v;this.save();if(this.state.timer){this.pause();this.play()}},
-renderRoute(){
-route.innerHTML="";
-const ordered=[...this.state.balances].sort((a,b)=>{
- const ai=this.state.routeOrder.indexOf(a.id),bi=this.state.routeOrder.indexOf(b.id);
- if(ai!==-1||bi!==-1)return (ai===-1?999:ai)-(bi===-1?999:bi);
- return a.index-b.index;
-});
-ordered.forEach(e=>{const d=document.createElement("div");d.className="routeItem";d.draggable=true;d.dataset.id=e.id;d.dataset.date=e.date.toDateString();d.textContent=`${e.date.toLocaleDateString()} — ${e.name} — ${this.money(e.amount)} — ${e.type}`;route.appendChild(d)});
-let drag=null;document.querySelectorAll(".routeItem").forEach(el=>{
-el.ondragstart=()=>{drag=el;el.classList.add("dragging")};
-el.ondragend=()=>el.classList.remove("dragging");
-el.ondragover=e=>{e.preventDefault();el.classList.add("dropTarget")};
-el.ondragleave=()=>el.classList.remove("dropTarget");
-el.ondrop=()=>{el.classList.remove("dropTarget");if(drag&&drag!==el){if(drag.dataset.date!==el.dataset.date){alert("v1.3 keeps calendar truth: only same-date stops can change forecast order.");return}route.insertBefore(drag,el);this.state.routeOrder=[...document.querySelectorAll(".routeItem")].map(x=>x.dataset.id);this.save();this.forecast()}};
-});
-},
-drawChart(){
-const c=chart,ctx=c.getContext("2d"),w=c.width,h=c.height,p=35;ctx.clearRect(0,0,w,h);ctx.fillStyle="#08101d";ctx.fillRect(0,0,w,h);
-const vals=[this.state.startingBalance,...this.state.balances.map(x=>x.balance)];if(vals.length<2)return;
-const max=Math.max(...vals,100),min=Math.min(...vals,0);ctx.strokeStyle="rgba(0,229,255,.25)";ctx.beginPath();ctx.moveTo(p,p);ctx.lineTo(p,h-p);ctx.lineTo(w-p,h-p);ctx.stroke();
-ctx.strokeStyle="#39ff88";ctx.lineWidth=3;ctx.beginPath();vals.forEach((v,i)=>{const x=p+i*((w-2*p)/(vals.length-1));const y=h-p-((v-min)/(max-min||1))*(h-2*p);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y)});ctx.stroke();
-ctx.strokeStyle="#ff295f";ctx.lineWidth=1;const y0=h-p-((0-min)/(max-min||1))*(h-2*p);ctx.beginPath();ctx.moveTo(p,y0);ctx.lineTo(w-p,y0);ctx.stroke();
-},
-mechanicReport(update=true){
-const last=this.state.balances.at(-1)?.balance ?? this.state.startingBalance;
-const negative=this.state.balances.find(x=>x.balance<0);
-const expensesByCat={};this.state.balances.filter(x=>x.amount<0).forEach(x=>expensesByCat[x.category]=(expensesByCat[x.category]||0)+Math.abs(x.amount));
-const top=Object.entries(expensesByCat).sort((a,b)=>b[1]-a[1]).slice(0,5);
-const incomeTotal=this.state.balances.filter(x=>x.amount>0).reduce((s,x)=>s+x.amount,0);
-const outgoings=this.state.balances.filter(x=>x.amount<0).reduce((s,x)=>s+Math.abs(x.amount),0);
-const emergencies=this.state.balances.filter(x=>x.type==="emergency").reduce((s,x)=>s+Math.abs(x.amount),0);
-const optional=this.state.balances.filter(x=>x.priority==="Optional").reduce((s,x)=>s+Math.abs(x.amount),0);
-let diagnosis=`FINANCIAL MECHANIC DIAGNOSIS
+renderTimeline(){timeline.innerHTML='<div class="line"></div>';this.state.timeline.forEach((e,i)=>{const div=document.createElement("div");div.className="event";div.style.left=(40+i*140)+"px";div.style.top=(i%2?190:100)+"px";div.textContent=`${e.date.toLocaleDateString()} ${e.type==="collision"?"⚠ ":""}${e.label} ${this.money(e.amount)}`;timeline.appendChild(div)})},
+drawChart(){const ctx=chart.getContext("2d"),w=chart.width,h=chart.height;ctx.clearRect(0,0,w,h);ctx.fillStyle="#08101d";ctx.fillRect(0,0,w,h);const cats={};this.state.collisions.forEach(c=>c.affectedCategories.forEach(k=>cats[k]=(cats[k]||0)+this.impact(c)));const rows=Object.entries(cats).sort((a,b)=>b[1]-a[1]);const max=Math.max(1,...rows.map(r=>r[1]));ctx.font="13px Arial";rows.forEach(([name,val],i)=>{const y=30+i*30,bw=(w-170)*(val/max);ctx.fillStyle="#95a8c7";ctx.fillText(name,10,y+16);ctx.fillStyle=i<2?"#ff295f":"#00e5ff";ctx.fillRect(130,y,bw,20);ctx.fillStyle="#f5fbff";ctx.fillText(this.money(val)+"/m",140+bw,y+16)})},
+report(){report.textContent=`FINANCIAL SATNAV LIVE DISCOVERY REPORT
 
-Fuel in over route: ${this.money(incomeTotal)}
-Fuel consumed over route: ${this.money(outgoings)}
-End tank: ${this.money(last)}
+Generated: ${new Date().toISOString()}
+Live sources checked: ${this.state.sources.length}
+Collision objects discovered: ${this.state.collisions.length}
 
-Main leak zones:
-${top.map(([c,v])=>"- "+c+": "+this.money(v)).join("\n")||"- None"}
+Detected collisions:
+${this.state.collisions.map(c=>`- ${c.event}
+  Source engine: ${c.source}
+  Severity: ${c.severity}
+  Probability: ${c.probability}%
+  Validation: ${Math.round((c.validationScore||0)*100)}%
+  Affected: ${c.affectedCategories.join(", ")}
+  Monthly impact: ${this.money(this.impact(c))}
+  Evidence count: ${(c.evidence||[]).length}
+`).join("\n")}
 
-Emergency roadblocks: ${this.money(emergencies)}
-Optional route cost: ${this.money(optional)}
-
-Verdict:
-`;
-if(negative) diagnosis+=`🚨 Vehicle runs out on ${negative.date.toDateString()} after "${negative.name}". Biggest fix: reduce/shift the largest leak zone before that date or add a fuel station before it.`;
-else if(last<300) diagnosis+="⚠️ Vehicle reaches destination but reserve is weak. One roadblock could strand the route.";
-else diagnosis+="✅ Vehicle reaches destination with usable fuel reserve.";
-diagnosis+=`
-
-Suggested route actions:
-1. Check top leak zone first.
-2. Move/cut optional stops if reserve is under £300.
-3. Add emergency buffer before the lowest-balance date.
-4. Use inflation engine before trusting next month's route.`;
-if(update!==false)mechanicOut.textContent=diagnosis;else mechanicOut.textContent=diagnosis;
-return diagnosis;
-},
-buildReport(update=true){
-const inc=this.state.income.reduce((s,x)=>s+Math.abs(x.amount),0),exp=this.state.expenses.reduce((s,x)=>s+Math.abs(x.amount),0);
-const last=this.state.balances.at(-1)?.balance ?? this.state.startingBalance;
-const neg=this.state.balances.find(x=>x.balance<0);
-const txt=`FINANCIAL SATNAV™ NEO v1.3 REPORT
-
-Scenario: ${this.state.scenario}
-Start balance: ${this.money(this.state.startingBalance)}
-Forecast end balance: ${this.money(last)}
-
-Monthly income baseline: ${this.money(inc)}
-Monthly/period bill baseline: ${this.money(exp)}
-Emergency events: ${this.state.emergencies.length}
-
-Survival result:
-${neg ? "Runs out on "+neg.date.toDateString()+" after "+neg.name : "Route survives full forecast window."}
-
-Mechanic summary:
-${this.mechanicReport(false)}
-
-Route events:
-${this.state.balances.map(x=>`${x.date.toDateString()} | ${x.name} | ${this.money(x.amount)} | balance ${this.money(x.balance)}`).join("\n")}`;
-if(update!==false)report.textContent=txt;else report.textContent=txt;
-return txt;
-},
-exportReportHTML(){
-const txt=this.buildReport(false).replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));
-const w=window.open("","_blank");
-if(!w){alert("Popup blocked. Use PDF Export through browser print instead.");return}
-w.document.write(`<!doctype html><html><head><title>Financial SatNav Report</title><style>body{font-family:Arial;padding:30px;color:#111}h1{color:#0b5}pre{white-space:pre-wrap;line-height:1.45}.box{border:1px solid #999;padding:18px;border-radius:12px}</style></head><body><h1>Financial SatNav™ Report</h1><div class="box"><pre>${txt}</pre></div><script>setTimeout(()=>print(),300)<\/script></body></html>`);
-w.document.close();
-},
-parseCSV(text){
-const lines=text.split(/\r?\n/).filter(x=>x.trim());if(!lines.length)return[];
-const headers=SatNavCSVLine(lines[0]).map(x=>x.toLowerCase());
-return lines.slice(1).map(line=>{const cols=SatNavCSVLine(line),row={};headers.forEach((h,i)=>row[h]=cols[i]||"");return row});
-},
-importCSV(file){
-if(!file)return;
-const reader=new FileReader();
-reader.onload=()=>{
- const rows=this.parseCSV(String(reader.result||""));
- let count=0,mode=csvMode.value;
- rows.forEach(r=>{
-  const date=r.date||r.posted||r.transactiondate||r["transaction date"]||this.state.startDate;
-  const desc=r.description||r.name||r.merchant||r.memo||"CSV Transaction";
-  const raw=r.amount||r.value||r.debit||r.credit||"0";
-  const amount=Number(String(raw).replace(/[£,$]/g,""));
-  if(!amount)return;
-  if(mode==="emergency"){this.state.emergencies.push({id:SatNavUID(),name:desc,amount:Math.abs(amount),date});count++}
-  if(mode==="expenses"&&amount<0){this.state.expenses.push({id:SatNavUID(),name:desc,amount:Math.abs(amount),rule:"once",day:SatNavParseISO(date).getDate(),priority:"Important",category:this.guessCategory(desc)});count++}
-  if(mode==="income"&&amount>0){this.state.income.push({id:SatNavUID(),name:desc,amount:Math.abs(amount),rule:"once",day:SatNavParseISO(date).getDate(),category:"Other"});count++}
- });
- alert("Imported "+count+" CSV rows.");this.save();this.forecast();
+Timeline:
+${this.state.timeline.map(t=>`${t.date.toDateString()} | ${t.type} | ${t.label} | ${this.money(t.amount)} | reserve ${this.money(t.reserve)}`).join("\n")}`;}
 };
-reader.readAsText(file);
-},
-guessCategory(desc){
-const s=String(desc).toLowerCase();
-if(/tesco|aldi|lidl|sainsbury|asda|food|grocery/.test(s))return"Food";
-if(/rent|mortgage/.test(s))return"Housing";
-if(/shell|bp|esso|fuel|train|uber|bus/.test(s))return"Transport";
-if(/electric|gas|energy|water|utility/.test(s))return"Utilities";
-if(/netflix|spotify|subscription|apple/.test(s))return"Subscriptions";
-if(/insurance/.test(s))return"Insurance";
-return"Other";
-},
-showCSVHelp(){alert("CSV columns supported: Date, Description, Amount. Also recognises Name, Merchant, Memo, Value, Debit, Credit. Import stays local in your browser.")},
-applyInflation(){
-this.readInputs();
-this.state.expenses=this.state.expenses.map(e=>{
- const rate=this.state.inflation[e.category] ?? this.state.inflation.Other ?? 0;
- return {...e,amount:Number((Math.abs(e.amount)*(1+rate/100)).toFixed(2))};
-});
-this.save();this.forecast();alert("Inflation applied to current bills.");
-},
-qa(){
-const issues=[];
-if(!this.state.income.length)issues.push("FAIL: no income streams");
-if(!this.state.expenses.length)issues.push("FAIL: no expenses");
-if(!this.state.balances.length)issues.push("FAIL: forecast has not generated events");
-if(this.state.balances.some(x=>Number.isNaN(x.balance)))issues.push("FAIL: NaN balance detected");
-if(this.state.balances.some(x=>Number.isNaN(x.date.getTime())))issues.push("FAIL: invalid date in schedule");
-if(!document.querySelector(".event")&&this.state.balances.length)issues.push("FAIL: timeline did not render");
-if(!report.textContent.trim())issues.push("FAIL: report empty");
-if(!mechanicOut.textContent.trim())issues.push("FAIL: mechanic report empty");
-qa.textContent=issues.length?issues.join("\n"):"QA PASSED: forecast, recurrence, metrics, timeline, drag/drop planner, chart, report, mechanic, inflation controls and CSV importer are present.";
-},
-setScenario(s){this.state.scenario=s;this.forecast()},
-jump(id,el){document.getElementById(id).scrollIntoView({behavior:"smooth"});document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"));el.classList.add("active")},
-seedDemo(){localStorage.removeItem("financialSatnavNeoWorking");location.reload()},
-reset(){if(confirm("Reset Financial SatNav data?")){localStorage.removeItem("financialSatnavNeoWorking");location.reload()}},
-init(){this.load();this.syncInputs();this.renderLists();this.forecast()}
-};
-
-App.state.assetRadar=[];
-
-App.loadAssetRadar = async function(){
- const ids=[
-  "bitcoin","ethereum","ripple",
-  "hedera-hashgraph","chainlink",
-  "stellar","polkadot"
- ];
- try{
-   const url=`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids.join(",")}&sparkline=false`;
-   const res=await fetch(url);
-   const data=await res.json();
-
-   this.state.assetRadar=data.map(a=>{
-      const range=(a.ath-a.atl)||1;
-      const pos=((a.current_price-a.atl)/range)*100;
-      return {
-        name:(a.symbol||"").toUpperCase(),
-        current:a.current_price,
-        ath:a.ath,
-        atl:a.atl,
-        position:Math.max(0,Math.min(100,pos))
-      };
-   });
-
-   this.renderAssetRadar();
- }catch(err){
-   alert("Asset Radar fetch failed");
-   console.error(err);
- }
-};
-
-App.renderAssetRadar=function(){
- const el=document.getElementById("assetRadar");
- if(!el) return;
-
- el.innerHTML=this.state.assetRadar.map(a=>{
-   let cls="MID";
-   if(a.position<=20) cls="ACCUMULATION";
-   else if(a.position<=40) cls="VALUE";
-   else if(a.position<=80) cls="EXPENSIVE";
-   else cls="DISTRIBUTION";
-
-   return `
-   <div class="item">
-      <b>${a.name}</b> - ${cls}<br>
-      Current: $${Number(a.current).toLocaleString()}<br>
-      ATH: $${Number(a.ath).toLocaleString()}<br>
-      ATL: $${Number(a.atl).toLocaleString()}<br>
-      Position: ${a.position.toFixed(1)}%
-      <div style="height:10px;background:#111;border-radius:20px;margin-top:6px">
-        <div style="height:10px;width:${a.position}%;background:#39ff88;border-radius:20px"></div>
-      </div>
-   </div>`;
- }).join("");
-};
-
-App.init();
+App.discover(false);
 </script>
 </body>
 </html>
