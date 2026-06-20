@@ -145,6 +145,76 @@ button.alt{background:#0e1626;color:var(--cyan)}
 .routeJourneyLabel{opacity:0;pointer-events:none;transition:.2s}
 .routeJourneyPin:hover .routeJourneyLabel{opacity:1}
 
+
+.routeJourneyLabel{display:none!important}
+.routeJourneyPin{font-size:clamp(12px,1.2vw,18px)!important}
+@media(max-width:768px){.routeJourneyPin{font-size:12px!important}}
+
+
+.routeMap{min-height:620px;overflow:hidden}
+.mapWrap{overflow:auto}
+.routeJourneyPin,.marker{
+  width:clamp(38px,4.5vw,50px)!important;
+  height:clamp(38px,4.5vw,50px)!important;
+  border-radius:50%!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-size:clamp(12px,1.4vw,18px)!important;
+  max-width:none!important;
+  z-index:8;
+}
+.routeJourneyLabel,.marker h3,.marker .badge,.marker .small,.marker .sourcePill{
+  display:none!important;
+}
+.marker:before,.routeJourneyPin:before{display:none!important}
+.nodeSelected .routeJourneyLabel,
+.nodeSelected .markerLabel{
+  display:block!important;
+}
+.destination.emptyState{
+  width:auto;
+  max-width:min(320px,80%);
+}
+
+
+.projectedVehicle{
+  position:absolute;
+  width:clamp(36px,4vw,48px);
+  height:clamp(36px,4vw,48px);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(57,255,136,.16);
+  border:2px solid var(--green);
+  box-shadow:0 0 26px rgba(57,255,136,.55);
+  z-index:12;
+  font-size:clamp(18px,2vw,24px);
+  transition:top 900ms ease,left 900ms ease,transform 900ms ease;
+}
+.projectedVehicle::after{
+  content:"Projected Route";
+  position:absolute;
+  left:54px;
+  white-space:nowrap;
+  font-size:12px;
+  color:var(--green);
+  background:rgba(7,16,29,.92);
+  border:1px solid rgba(57,255,136,.35);
+  border-radius:999px;
+  padding:4px 8px;
+  display:none;
+}
+.projectedVehicle:hover::after{display:block}
+.projectedVehicle.movePulse{animation:projectedPulse 1.2s ease}
+@keyframes projectedPulse{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.28)}
+  100%{transform:scale(1)}
+}
+
 </style>
 </head>
 <body>
@@ -178,7 +248,7 @@ button.alt{background:#0e1626;color:var(--cyan)}
 <div><label>Debt Exposure</label><input id="debtExp" type="number" value="160" oninput="recalculate()"></div>
 </div>
 <button onclick="runWorldScan(true)">RUN WORLD INTELLIGENCE SCAN</button>
-<button class="alt" onclick="clearDiscoveredEvents()">CLEAR ROUTE EVENTS</button>
+<button class="alt" onclick="clearWorldEvents()">CLEAR WORLD EVENTS</button>
 
 <h2 class="sectionTitle">Fuel Tank</h2>
 <div class="fuelbar"><div id="fuelFill" class="fill"></div></div>
@@ -200,7 +270,7 @@ button.alt{background:#0e1626;color:var(--cyan)}
 <h2 class="sectionTitle">Route Recalculation</h2>
 <div id="routes"></div>
 
-<h2 class="sectionTitle">Destination Navigator</h2>
+<h2 class="sectionTitle">Destination Navigator</h2><div class="goalActionRow"><button onclick="clearWorldEvents()">CLEAR WORLD EVENTS</button><button class="goalDanger" onclick="resetLifeRoute()">CLEAR LIFE ROUTE / RESET PLAN</button></div>
 <div class="destinationFocusPanel">
 <label>Active Destination</label>
 <select id="destinationSelector" onchange="setActiveDestination(this.value)"></select>
@@ -707,6 +777,7 @@ function toggleChecklist(goalId,itemIndex){
  }
  saveLifeGoals();
  recalculate();
+ triggerProjectedMovement?.();
 }
 function monthlyMissionFuel(route=null){
  const v=vehicle();
@@ -876,6 +947,7 @@ function unlockAchievement(goal){
  achievementToast.innerHTML=`✓ Achievement unlocked: ${goal.achievement||goal.name}`;
  achievementToast.style.display="block";
  launchConfetti();
+ triggerProjectedMovement?.();
  setTimeout(()=>achievementToast.style.display="none",3200);
  addConsole("ACHIEVEMENT",`✓ ${goal.achievement||goal.name}`,"route");
 }
@@ -898,12 +970,42 @@ function renderMissionSystems(){
  // life goal pins removed from map; destination-only navigation
 }
 
+
+function clearWorldEvents(){
+ activeEvents=[];
+ localStorage.removeItem("FinancialSatNavEvents");
+ recalculate();
+}
+function resetLifeRoute(){
+ if(!confirm("Delete life route plan?")) return;
+ LifeGoals=[];
+ ActiveDestinationId="";
+ if(projectedVehicleEl){projectedVehicleEl.remove();projectedVehicleEl=null;}
+ localStorage.removeItem("FinancialSatNavLifeGoals");
+ localStorage.removeItem("FinancialSatNavActiveDestination");
+ recalculate();
+}
+function buildRouteNodes(){
+ const nodes=[];
+ const goal=activeDestinationGoal();
+ if(!goal) return [{kind:"vehicle",icon:"🚗"},{kind:"empty",icon:"🏁"}];
+ const best=bestMissionRoute();
+ if(!goal)return;
+ const f=goalForecast(goal,best);
+ nodes.push({kind:"vehicle",icon:"🚗",data:f});
+ (goal.milestones||[]).slice(0,3).forEach(m=>nodes.push({kind:"milestone",icon:"○",value:m,data:f}));
+ activeEvents.filter(e=>(e.severity||0)>=70 || (e.purchasingPowerLoss||0)>1500).slice(0,3).forEach(e=>nodes.push({kind:"roadblock",icon:e.icon||"⚠",event:e,data:f}));
+ if(best) nodes.push({kind:"fix",icon:"🔁",route:best,data:f});
+ nodes.push({kind:"destination",icon:goal.icon||"🏁",data:f});
+ return nodes;
+}
+
 let ActiveDestinationId=localStorage.getItem("FinancialSatNavActiveDestination")||"";
 
 function activeDestinationGoal(){
  if(!LifeGoals.length)return null;
  let g=LifeGoals.find(x=>x.id===ActiveDestinationId);
- if(!g){g=LifeGoals[0];ActiveDestinationId=g.id;localStorage.setItem("FinancialSatNavActiveDestination",g.id);}
+ if(!g){return null;}
  return g;
 }
 function setActiveDestination(id){
@@ -1260,6 +1362,247 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")hideDetails()});
  };
 })();
 
+
+
+window.renderDestinationRouteMap=function(){
+ const map=document.getElementById("routeMap");
+ if(!map) return;
+ [...map.querySelectorAll(".routeJourneyPin")].forEach(x=>x.remove());
+ const nodes=buildRouteNodes();
+ const routeHeight=Math.max(map.clientHeight-120,(nodes.length+1)*100);
+ const destinationZone=200;
+ const usable=routeHeight-destinationZone;
+ const spacing=Math.max(window.innerWidth<768?80:100, usable/Math.max(1,nodes.length));
+ nodes.forEach((n,i)=>{
+   const pin=document.createElement("div");
+   pin.className="routeJourneyPin "+(n.kind==="destination"?"destinationPin":n.kind==="roadblock"?"roadblock":n.kind==="milestone"?"milestone":"");
+   pin.style.top=(40+(i*spacing))+"px";
+   pin.style.left="calc(50% - 19px)";
+   pin.innerHTML=n.icon;
+   pin.onclick=()=>{
+      if(n.kind==="roadblock") showDetails(n.event);
+      else if(n.data) showGoalDetails(n.data);
+   };
+   map.appendChild(pin);
+ });
+};
+
+
+
+let projectedVehicleEl=null;
+let lastProjectedProgress=0;
+
+function ensureProjectedVehicle(map){
+ if(!map)return null;
+ if(!projectedVehicleEl || !map.contains(projectedVehicleEl)){
+   projectedVehicleEl=document.createElement("div");
+   projectedVehicleEl.className="projectedVehicle";
+   projectedVehicleEl.innerHTML="🚗";
+   projectedVehicleEl.title="Projected progress after selected route";
+   projectedVehicleEl.onclick=()=>{
+     const best=bestMissionRoute();
+     const f=focusedForecast(best);
+     if(f)showGoalDetails(f);
+   };
+   map.appendChild(projectedVehicleEl);
+ }
+ return projectedVehicleEl;
+}
+
+function projectedProgressPosition(nodes,positions,map){
+ const goal=activeDestinationGoal?.();
+ if(!goal || !positions.length)return null;
+ const best=bestMissionRoute();
+ const f=goalForecast(goal,best);
+ const progress=Math.max(0,Math.min(1,(f.progress||0)/100));
+ const timeBoost=f.collisionEta?Math.max(0,Math.min(.35,(f.timeSaved||0)/Math.max(1,f.collisionEta))):0;
+ const projected=Math.max(lastProjectedProgress,Math.min(.95,progress+timeBoost));
+ lastProjectedProgress=projected;
+ const start=positions[0]?.top ?? 80;
+ const dest=positions[positions.length-1]?.top ?? (map.clientHeight-100);
+ const top=start+((dest-start)*projected);
+ return {top,left:(map.clientWidth/2)-22};
+}
+
+function renderProjectedVehicle(nodes,positions,map){
+ const goal=activeDestinationGoal?.();
+ if(!goal){
+   if(projectedVehicleEl)projectedVehicleEl.remove();
+   projectedVehicleEl=null;
+   return;
+ }
+ const pos=projectedProgressPosition(nodes,positions,map);
+ if(!pos)return;
+ const car=ensureProjectedVehicle(map);
+ const oldTop=parseFloat(car.style.top||"0");
+ car.style.top=Math.round(pos.top)+"px";
+ car.style.left=Math.round(pos.left)+"px";
+ if(Math.abs(oldTop-pos.top)>8){
+   car.classList.remove("movePulse");
+   void car.offsetWidth;
+   car.classList.add("movePulse");
+ }
+}
+
+function triggerProjectedMovement(){
+ lastProjectedProgress=0;
+ renderDestinationRouteMap();
+}
+
+function routeLayoutConfig(){
+ const mobile=window.innerWidth<700;
+ const tablet=window.innerWidth>=700&&window.innerWidth<1000;
+ return {
+   minGap:mobile?80:tablet?90:100,
+   topSafe:mobile?70:90,
+   bottomSafe:220,
+   nodeSize:mobile?42:48,
+   sideOffset:Math.max(mobile?46:62, Math.min(120, Math.round(window.innerWidth*0.075)))
+ };
+}
+function buildDestinationNodes(){
+ const nodes=[];
+ const goal=typeof activeDestinationGoal==="function" ? activeDestinationGoal() : null;
+ nodes.push({kind:"start",icon:"●",lane:"center",click:null});
+ if(!goal){
+   nodes.push({kind:"empty",icon:"🏁",lane:"center",empty:true});
+   return nodes;
+ }
+ const best=bestMissionRoute();
+ const f=goalForecast(goal,best);
+ const current=goalCurrentFuel(goal);
+ const milestones=(goal.milestones||[]).filter(n=>n>0).sort((a,b)=>a-b);
+ const selected=(milestones.length?milestones:[Math.round(goal.target*.25),Math.round(goal.target*.5),goal.target]).slice(0,3);
+ selected.forEach((m,i)=>{
+   nodes.push({
+     kind:"milestone",
+     icon:current>=m?"✓":"○",
+     lane:"center",
+     value:m,
+     data:f,
+     title:`Milestone ${money(m)}`
+   });
+ });
+ activeEvents
+  .filter(e=>(e.severity||0)>=70 || (e.purchasingPowerLoss||0)>1500)
+  .sort((a,b)=>(b.purchasingPowerLoss||0)-(a.purchasingPowerLoss||0))
+  .slice(0,3)
+  .forEach((e,i)=>nodes.push({
+    kind:"roadblock",
+    icon:e.icon||"⚠",
+    lane:i%2?"left":"right",
+    event:e,
+    data:f,
+    title:e.title
+  }));
+ if(best)nodes.push({kind:"fix",icon:"🔁",lane:"right",route:best,data:f,title:`${best.name} ${best.type}`});
+ nodes.push({kind:"destination",icon:goal.icon||"🏁",lane:"center",data:f,title:goal.name});
+ return nodes;
+}
+function calculateRouteLayout(nodes,map){
+ const cfg=routeLayoutConfig();
+ const visibleHeight=Math.max(520,map.parentElement?.clientHeight||map.clientHeight||620);
+ const requiredHeight=cfg.topSafe+cfg.bottomSafe+(nodes.length-1)*cfg.minGap;
+ const routeHeight=Math.max(visibleHeight,requiredHeight);
+ map.style.height=routeHeight+"px";
+ map.style.minHeight=routeHeight+"px";
+ const available=routeHeight-cfg.topSafe-cfg.bottomSafe;
+ const spacing=Math.max(cfg.minGap,available/Math.max(1,nodes.length-1));
+ let y=cfg.topSafe;
+ const positions=[];
+ nodes.forEach((node,i)=>{
+   let top=i===0?cfg.topSafe:cfg.topSafe+(i*spacing);
+   if(i===nodes.length-1)top=Math.min(top,routeHeight-90);
+   if(positions.length && top-positions[positions.length-1].top<cfg.minGap){
+     top=positions[positions.length-1].top+cfg.minGap;
+   }
+   const destinationLimit=routeHeight-cfg.bottomSafe;
+   if(i<nodes.length-1 && top>destinationLimit)top=destinationLimit;
+   positions.push({...node,top});
+ });
+ const last=positions[positions.length-1];
+ if(last)last.top=routeHeight-90;
+ for(let i=positions.length-2;i>=0;i--){
+   if(last && positions[i].top>last.top-200){
+     positions[i].top=last.top-200-((positions.length-2-i)*cfg.minGap);
+   }
+ }
+ positions.forEach((p,i)=>{
+   if(i>0 && p.top-positions[i-1].top<cfg.minGap){
+     p.top=positions[i-1].top+cfg.minGap;
+   }
+ });
+ const maxTop=Math.max(...positions.map(p=>p.top),routeHeight);
+ if(maxTop+120>routeHeight){
+   map.style.height=(maxTop+160)+"px";
+   map.style.minHeight=(maxTop+160)+"px";
+ }
+ return positions;
+}
+function placeNodeElement(el,pos,map){
+ const cfg=routeLayoutConfig();
+ const center=map.clientWidth/2;
+ let x=center-(cfg.nodeSize/2);
+ if(pos.lane==="left")x=center-cfg.sideOffset-cfg.nodeSize;
+ if(pos.lane==="right")x=center+cfg.sideOffset;
+ el.style.top=Math.round(pos.top)+"px";
+ el.style.left=Math.round(x)+"px";
+}
+function makeRouteNode(pos,map){
+ const el=document.createElement("div");
+ el.className="routeJourneyPin";
+ if(pos.kind==="start")el.classList.add("routeFix");
+ if(pos.kind==="destination")el.classList.add("destinationPin");
+ if(pos.kind==="milestone")el.classList.add("milestone");
+ if(pos.kind==="roadblock")el.classList.add("roadblock");
+ if(pos.kind==="fix")el.classList.add("routeFix");
+ if(pos.kind==="empty")el.classList.add("destinationPin","emptyState");
+ el.innerHTML=pos.icon;
+ el.title=pos.empty?"Select Destination":(pos.title||pos.kind);
+ placeNodeElement(el,pos,map);
+ el.onclick=()=>{
+   if(pos.kind==="roadblock"&&pos.event)return showDetails(pos.event);
+   if(pos.kind==="fix"&&pos.route)return showRecalc(pos.route);
+   if(pos.data)return showGoalDetails(pos.data);
+ };
+ map.appendChild(el);
+}
+window.renderDestinationRouteMap=function(){
+ const map=document.getElementById("routeMap");
+ if(!map)return;
+ [...map.querySelectorAll(".routeJourneyPin")].forEach(x=>x.remove());
+ [...map.querySelectorAll(".marker")].forEach(x=>x.remove());
+ const nodes=buildDestinationNodes();
+ const positions=calculateRouteLayout(nodes,map);
+ positions.forEach(p=>makeRouteNode(p,map));
+ renderProjectedVehicle(nodes,positions,map);
+};
+window.renderMap=function(){
+ const map=document.getElementById("routeMap");
+ if(!map)return;
+ [...map.querySelectorAll(".marker")].forEach(x=>x.remove());
+ renderDestinationRouteMap();
+};
+window.clearWorldEvents=function(){
+ activeEvents=[];
+ lastRawEvents=[];
+ localStorage.removeItem("FinancialSatNavEvents");
+ addConsole("RESET","World events cleared. Destination plan preserved.","quiet");
+ recalculate();
+};
+window.resetLifeRoute=function(){
+ if(!confirm("Delete Life Route plan and active destination?"))return;
+ LifeGoals=[];
+ ActiveDestinationId="";
+ if(projectedVehicleEl){projectedVehicleEl.remove();projectedVehicleEl=null;}
+ localStorage.removeItem("FinancialSatNavLifeGoals");
+ localStorage.removeItem("FinancialSatNavActiveDestination");
+ localStorage.removeItem("FinancialSatNavAchievements");
+ AchievementState.clear?.();
+ addConsole("RESET","Life Route plan cleared. Create or select a destination.","quiet");
+ clearGoalEditor?.();
+ recalculate();
+};
 
 startRadarScreen();
 boot();
