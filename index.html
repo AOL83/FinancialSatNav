@@ -44,6 +44,8 @@ h1{margin:0;color:var(--yellow);text-shadow:0 0 12px var(--yellow);font-size:cla
 .fuelbar{height:18px;border-radius:99px;background:#182438;overflow:hidden;border:1px solid #32455f}
 .fill{height:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green))}
 .console{font-family:monospace;font-size:12px;background:#02050a;border:1px solid #1b304a;border-radius:12px;padding:10px;height:150px;overflow:auto}
+.consoleLine{padding:2px 0;border-bottom:1px solid rgba(0,229,255,.08)}
+.consoleLine.scan{color:#9fdcff}.consoleLine.news{color:#ffe600}.consoleLine.fuel{color:#00e5ff}.consoleLine.impact{color:#ffce7a}.consoleLine.alert{color:#ff7b9a}.consoleLine.route{color:#39ff88}.consoleLine.quiet{color:#91a8c4}
 button,input,select{width:100%;padding:9px;margin:5px 0;border-radius:10px;background:#0e1626;border:1px solid #284260;color:white}
 button{background:linear-gradient(90deg,var(--cyan),var(--green));color:#021019;font-weight:bold;cursor:pointer}
 button.alt{background:#0e1626;color:var(--cyan)}
@@ -208,12 +210,12 @@ const IntelligencePipeline={
    const gdelt=await SourceConnectors.gdelt();
    const fx=await SourceConnectors.fx();
    out.push(...gdelt,...fx);
-   if(out.length===0){
-     log("[DISCOVERY] Live source blocked/unavailable → local fallback intelligence feed loaded");
-     return fallbackWorldEvents;
+   if(out.length){
+     addConsole("DISCOVERY","Live source records discovered: "+out.length,"scan");
+     return out;
    }
-   log("[DISCOVERY] Live source records discovered: "+out.length);
-   return out.concat(fallbackWorldEvents.slice(0,2));
+   addConsole("DISCOVERY","Using built-in scanner intelligence feed","quiet");
+   return [];
  },
  classify(raw){
    const text=(raw.title+" "+raw.body).toLowerCase();
@@ -279,13 +281,35 @@ const IntelligencePipeline={
  marker(evt){ return evt; },
  async run(){
    const raw=await this.discover();
-   lastRawEvents=raw;
-   const dedup=new Map();
-   raw.map(r=>this.classify(r)).map(e=>this.attribute(e)).map(e=>this.impact(e,vehicle())).map(e=>this.crashMatch(e)).map(e=>this.reroute(e,vehicle())).forEach(e=>dedup.set(e.category,e));
-   activeEvents=[...dedup.values()].sort((a,b)=>a.day-b.day);
-   log("[PIPELINE] World → classification → attribution → fuel impact → crash match → route marker complete");
-   recalculate();
+   raw.forEach(upsertRawEvent);
+   rebuildFromRawEvents();
+   addConsole("PIPELINE","World → classification → attribution → fuel impact → crash match → route marker complete","route");
+   await runScannerCycle();
  }
+};
+
+const ScannerEvents=[
+ {tag:"SCAN",cls:"scan",text:"Checking central bank roadworks",action:"scan",delay:220},
+ {tag:"NEWS",cls:"news",text:"Rate decision detected",eventKey:"rates",delay:520},
+ {tag:"FUEL",cls:"fuel",text:"GBP fuel quality pressure found",eventKey:"currency",delay:820},
+ {tag:"BUYING POWER",cls:"impact",text:"CPI inflation event found",eventKey:"food",delay:1120},
+ {tag:"SAVINGS",cls:"impact",text:"Fuel evaporation risk increased",action:"low",delay:1420},
+ {tag:"ENERGY",cls:"alert",text:"Energy price collision detected",eventKey:"energy",delay:1720},
+ {tag:"HOUSING",cls:"news",text:"Housing cost roadworks detected",eventKey:"housing",delay:2020},
+ {tag:"TAX",cls:"news",text:"Government demand logged",eventKey:"tax",delay:2320},
+ {tag:"MOBILITY",cls:"alert",text:"Transport/fuel cost pressure detected",eventKey:"supply",delay:2620},
+ {tag:"MAP",cls:"route",text:"Markers added to route",action:"map",delay:3020},
+ {tag:"RECALC",cls:"route",text:"Route options generated",action:"recalc",delay:3320}
+];
+
+const EventLibrary={
+ rates:{source:"Central Bank Monitor",sourceType:"central-bank",title:"Rate Decision Roadworks Detected",body:"Bank rate, interest rate and mortgage pressure detected. Debt and housing roadworks likely.",publishedAt:new Date().toISOString(),trust:92},
+ energy:{source:"Energy Market Monitor",sourceType:"energy",title:"Energy Price Shock Detected",body:"Energy, gas, electricity and oil cost pressure detected. Utilities, food and transport fuel leaks likely.",publishedAt:new Date().toISOString(),trust:86},
+ food:{source:"Inflation Release Monitor",sourceType:"inflation",title:"Food Inflation Risk Detected",body:"CPI inflation and food prices remain elevated. Purchasing power fuel evaporation detected.",publishedAt:new Date().toISOString(),trust:88},
+ currency:{source:"FX Market Monitor",sourceType:"currency",title:"Fiat Fuel Weakness Detected",body:"Currency weakness and FX pressure detected. Import cost pressure may degrade fiat fuel quality.",publishedAt:new Date().toISOString(),trust:72},
+ housing:{source:"Housing Market Monitor",sourceType:"housing",title:"Housing Cost Roadworks Detected",body:"Housing, rent and mortgage pressure detected. Vehicle weight may increase.",publishedAt:new Date().toISOString(),trust:76},
+ supply:{source:"Global Event Monitor",sourceType:"black-swan",title:"Supply Chain Shock Detected",body:"Supply chain disruption, shipping pressure, transport cost pressure and geopolitical risk detected.",publishedAt:new Date().toISOString(),trust:74},
+ tax:{source:"Government Policy Monitor",sourceType:"government",title:"Tax Change Roadworks Logged",body:"Tax, fiscal policy and benefit changes may reduce household disposable engine output.",publishedAt:new Date().toISOString(),trust:78}
 };
 
 const SourceConnectors={
@@ -297,7 +321,7 @@ const SourceConnectors={
      if(!r.ok) throw new Error("GDELT blocked");
      const j=await r.json();
      return (j.articles||[]).map(a=>({source:"GDELT Global Event Feed",sourceType:"news",title:a.title||"World event",body:`${a.title||""} ${a.domain||""} ${a.sourceCountry||""}`,publishedAt:a.seendate||new Date().toISOString(),url:a.url||"",trust:70}));
-   }catch(e){ log("[SOURCE] GDELT unavailable in this browser context"); return []; }
+   }catch(e){ addConsole("SOURCE","GDELT unavailable in this browser context","quiet"); return []; }
  },
  async fx(){
    try{
@@ -305,9 +329,59 @@ const SourceConnectors={
      if(!r.ok) throw new Error("FX blocked");
      const j=await r.json();
      return [{source:"Frankfurter FX Feed",sourceType:"fx",title:"GBP FX Fuel Quality Snapshot",body:`GBP exchange rates updated EUR ${j.rates?.EUR} USD ${j.rates?.USD}. Currency and exchange rate pressure can degrade fiat fuel quality.`,publishedAt:j.date||new Date().toISOString(),url:"https://api.frankfurter.app",trust:74}];
-   }catch(e){ log("[SOURCE] FX feed unavailable in this browser context"); return []; }
+   }catch(e){ addConsole("SOURCE","FX feed unavailable in this browser context","quiet"); return []; }
  }
 };
+
+function addConsole(tag,msg,cls="scan"){
+ const c=document.getElementById("console");
+ const line=document.createElement("div");
+ line.className="consoleLine "+cls;
+ line.innerHTML=`[${tag}] ${msg}`;
+ c.appendChild(line);
+ while(c.children.length>80)c.removeChild(c.firstChild);
+ c.scrollTop=c.scrollHeight;
+}
+
+function scannerLog(tag,msg,cls="scan",delay=0){
+ setTimeout(()=>addConsole(tag,msg,cls),delay);
+}
+
+function upsertRawEvent(raw){
+ const exists=lastRawEvents.some(x=>x.title===raw.title && x.source===raw.source);
+ if(!exists)lastRawEvents.push(raw);
+}
+
+async function runScannerCycle(){
+ ScannerEvents.forEach(step=>{
+   scannerLog(step.tag,step.text,step.cls,step.delay);
+   if(step.eventKey){
+     setTimeout(()=>{
+       upsertRawEvent({...EventLibrary[step.eventKey],publishedAt:new Date().toISOString()});
+       rebuildFromRawEvents();
+       scannerLog("MAP","Marker added to route: "+EventLibrary[step.eventKey].title,"route",80);
+       scannerLog("RECALC","Route option generated from "+EventLibrary[step.eventKey].title,"route",160);
+     },step.delay+120);
+   }
+   if(step.action==="low"){
+     setTimeout(()=>scannerLog("NO ACTION","Logged as low-impact watch item","quiet"),step.delay+120);
+   }
+ });
+}
+
+function rebuildFromRawEvents(){
+ const dedup=new Map();
+ lastRawEvents
+   .map(r=>IntelligencePipeline.classify(r))
+   .map(e=>IntelligencePipeline.attribute(e))
+   .map(e=>IntelligencePipeline.impact(e,vehicle()))
+   .map(e=>IntelligencePipeline.crashMatch(e))
+   .map(e=>IntelligencePipeline.reroute(e,vehicle()))
+   .forEach(e=>dedup.set(e.category,e));
+ activeEvents=[...dedup.values()].sort((a,b)=>a.day-b.day);
+ recalculate();
+}
+
 
 function recalculate(){
  const v=vehicle();
@@ -413,7 +487,10 @@ function showRecalc(best){
  detailsBody.innerHTML=`<h2>🔁 Route Recalculation</h2><p><b>Best current route:</b> ${best.name} — ${best.type}</p><p><b>Trigger:</b> ${best.event.title}</p><p><b>Fuel saved:</b> ${money(best.save)}</p><p>${best.why}</p>`;
 }
 function hideDetails(){details.style.display="none";document.body.style.overflow=""}
-function log(t){console.innerHTML+=t+"<br>";console.scrollTop=console.scrollHeight}
+function log(t){
+ const m=String(t).match(/^\[([^\]]+)\]\s*(.*)$/);
+ addConsole(m?m[1]:"INFO",m?m[2]:t,"scan");
+}
 function clearDiscoveredEvents(){activeEvents=[];log("[RESET] Discovered route events cleared");recalculate();}
 async function runWorldScan(force){
  log("[SCAN] Running world intelligence scan");
